@@ -6,6 +6,7 @@ import locale
 import time
 import _strptime as _strptime_module
 from datetime import date as datetime_date
+import re
 
 '''
 TODO:
@@ -103,6 +104,7 @@ class C_LocaleTime(AbstractLocaleTime):
         self.timezone = (frozenset(['utc', 'eet', 'gmt']), frozenset(['eest']))
         self.a_month = ['', 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
         self.LC_time = '%H:%M:%S'
+        self.LC_tznames = ('UTC', None)
 
 class C_LangSet(LangSet):
     def __init__(self):
@@ -114,6 +116,7 @@ class Current_LangSet(LangSet):
     """
     def __init__(self):
         self.locale_time = _strptime_module.LocaleTime()
+        self.locale_time.LC_tznames = time.tzname
         super(Current_LangSet, self).__init__()
 
 class LangLoader(object):
@@ -124,6 +127,8 @@ class LangLoader(object):
         """Initialize a language, keeping a cache if needed
         """
         def _get_tuple(llc):
+            if isinstance(llc, tuple):
+                return llc
             if llc and '.' in llc:
                 return tuple(llc.split('.', 1))
             else:
@@ -135,7 +140,7 @@ class LangLoader(object):
             elif _get_tuple(lc) == locale.getlocale(locale.LC_ALL):
                 self._lc_cache[lc] = Current_LangSet()
             else:
-                raise KeyError("Cannot use %s locale" % lc)
+                raise KeyError("Cannot use %s locale" % (lc,))
         return self._lc_cache[lc]
 
 lang_loader = LangLoader()
@@ -290,4 +295,80 @@ def strptime(data_string, format="%a %b %d %H:%M:%S %Y", lang=None):
 
 def strptime_time(data_string, format="%a %b %d %H:%M:%S %Y", lang=None):
     return strptime(data_string, format, lang=lang)[0]
+    
+__strftime_regex = re.compile('%([aAbBcdHIjmMpSUwWxXyYZ%])')
+
+def strftime(format, t=None, lang=None):
+    global lang_loader
+    # This code has been copied from python's _strptime module.
+    if lang is False:
+        lang = 'C'
+    elif lang is None:
+        lang = locale.getlocale(locale.LC_TIME) or 'C'
+
+    if isinstance(lang, (basestring, tuple)):
+        lang = lang_loader.loadLang(lang)
+
+    locale_time = lang.locale_time
+    if t is None:
+        t = time.localtime()
+
+    def _srepl(mobj):
+        f = mobj.group(1)
+        if f == "a":  #  Locale¢s abbreviated weekday name.
+            return locale_time.a_weekday[t.tm_wday].title()
+        elif f == "A":  #  Locale¢s full weekday name.
+            return locale_time.f_weekday[t.tm_wday].title()
+        elif f == "b":  #  Locale¢s abbreviated month name.
+            return locale_time.a_month[t.tm_mon].title()
+        elif f == "B":  #  Locale¢s full month name.
+            return locale_time.f_month[t.tm_mon].title()
+        elif f == "c":  #  Locale¢s appropriate date and time representation.
+            return __strftime_regex.sub(_srepl, locale_time.LC_date_time)
+        elif f == "d":  #  Day of the month as a decimal number [01,31].
+            return '%02d' % t.tm_mday
+        elif f == "H":  #  Hour (24-hour clock) as a decimal number [00,23].
+            return '%02d' % t.tm_hour
+        elif f == "I":  #  Hour (12-hour clock) as a decimal number [01,12].
+            return '%02d' % ((t.tm_hour % 12) or 12)
+        elif f == "j":  #  Day of the year as a decimal number [001,366].
+            return '%03d' % t.tm_yday
+        elif f == "m":  #  Month as a decimal number [01,12].
+            return '%02d' % t.tm_mon
+        elif f == "M":  #  Minute as a decimal number [00,59].
+            return '%02d' % t.tm_min
+        elif f == "p":  #  Locale¢s equivalent of either AM or PM.
+            return locale_time.am_pm[int(t.tm_hour / 12)]
+        elif f == "S":  #  Second as a decimal number [00,61].  (2)
+            return '%02d' % t.tm_sec
+        elif f == "U":  #  Week number of the year (Sunday as the first day of the week)
+                        # as a decimal number [00,53]. All days in a new year preceding
+                        # the first Sunday are considered to be in week 0.
+            return '%02d' % ((t.tm_yday + 6 - (t.tm_wday-6) % 7 ) / 7 )
+        elif f == "w":  #  Weekday as a decimal number [0(Sunday),6].
+            return '%1d' % (t.tm_wday + 1)
+        elif f == "W":  #  Week number of the year (Monday as the first day of the week) 
+                        # as a decimal number [00,53]. All days in a new year preceding 
+                        # the first Monday are considered to be in week 0.
+            return '%02d' % ( (t.tm_yday + 6 - t.tm_wday) / 7)
+        elif f == "x":  #  Locale¢s appropriate date representation.
+            return __strftime_regex.sub(_srepl, locale_time.LC_date)
+        elif f == "X":  #  Locale¢s appropriate time representation.
+            return __strftime_regex.sub(_srepl, locale_time.LC_time)
+        elif f == "y":  #  Year without century as a decimal number [00,99].
+            return '%02d' % (t.tm_year % 100)
+        elif f == "Y":  #  Year with century as a decimal number.
+            return '%d' % t.tm_year
+        elif f == "Z":  #  Time zone name (no characters if no time zone exists).
+            if t.tm_isdst in (0,1):
+                return locale_time.LC_tznames[t.tm_isdst] or ''
+            else:
+                return ''
+        elif f == "%":  #  A literal '%' character.
+            return '%'
+        else:
+            raise ValueError("Invalid format specifier: '%s'"  % f)
+
+    return __strftime_regex.sub(_srepl, format)
+
 #eof
