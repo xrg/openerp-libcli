@@ -29,14 +29,15 @@
 #
 ##############################################################################
 
-
+import logging
 try:
     import protocol_netrpc
+    __hush_pyflakes = [ protocol_netrpc, ]
 except ImportError:
     logging.getLogger('RPC').warning("Net-RPC won't be available")
 
 try:
-    #import protocol_xmlrpc
-    pass
+    import protocol_xmlrpc
+    __hush_pyflakes = [ protocol_xmlrpc, ]
 except ImportError:
-    logging.getLogger('RPC').warning("Net-RPC won't be available")
+    logging.getLogger('RPC').warning("XML-RPC won't be available")
