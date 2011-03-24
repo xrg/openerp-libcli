@@ -507,7 +507,8 @@ class XmlRpcConnection(TCPConnection):
         uri = '%s:%s' % (self.host, self.port)
         self._prepare_transport()
         self._transport.make_connection(uri)
-        self._establish_int()
+        if do_init:
+            self._establish_int()
         if do_init:
             # Check after server initial query, again
             send_gzip = ('xmlrpc-gzip' in self._session.server_options)

@@ -78,6 +78,7 @@ class Session(object):
         self.auth_proxy = None
         # self.allow_xmlrpc2 = True
         self.threads = []
+        self.server_version = (None, )
         self.server_options = []
         self._notifier = notifier or RPCNotifier()
         self.connections = Pool(iter(self.__create_connection_int, NotImplemented),
@@ -187,6 +188,7 @@ class Session(object):
                 self.state = 'login'
                 self.auth_proxy.uid = res
                 self._log.info("Logged in to %s", conn.prettyUrl())
+            self.context = conn.call('/object', 'execute', ('res.users', 'context_get'), auth_level='db') or {}
             return res
         except Exception:
             self.state = 'nologin'
@@ -195,6 +197,16 @@ class Session(object):
         finally:
             self.connections.free(conn)
 
+    def reloadContext(self):
+        """Reloads the session context
+        
+            Useful when some user parameters such as language are changed
+        """
+        conn = self.connections.borrow(self.conn_timeout)
+        try:
+            self.context = conn.call('/object', 'execute', ('res.users', 'context_get'), auth_level='db') or {}
+        finally:
+            self.connections.free(conn)
 
     def logged(self):
         """Returns whether the login function has been called and was successfull

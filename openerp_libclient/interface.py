@@ -22,6 +22,7 @@
 ##############################################################################
 
 import logging
+import re
 from dict_tools import dict_filter
 
 """This module provides the essential interface classes
@@ -32,6 +33,7 @@ class Connection(object):
     """
     name = "Unknown"
     codename = "baseclass"
+    _version_re = re.compile(r'([0-9]{1,2}(?:[\.0-9]+))')
 
     def __init__(self, session):
         assert session
@@ -48,9 +50,19 @@ class Connection(object):
         raise NotImplementedError()
 
     def _establish_int(self):
+        """ setup the connection, get the trivial data.
+        """
+        sv = self.call('/db', 'server_version', args=(), auth_level='pub')
+        vm = self._version_re.match(sv)
+        if not vm:
+            raise ValueError("Invalid format of server's version: %s" %  sv)
+        self._session.server_version = tuple(map(int, vm.group(1).split('.')))
+        self._log.info("Connected to a server ver: %s" % (self._session.server_version,))
         try:
-            server_options = self.call('/common', 'get_options', args=[], auth_level='pub')
-            self._log.debug("got server options: %r", server_options)
+            server_options = self.call('/common', 'get_options', args=(), auth_level='pub')
+            if not isinstance(server_options, (list, tuple)):
+                raise TypeError("server options are %s, expected list" % type(server_options))
+            self._log.debug("got server options: %s", ', '.join(server_options))
             self._session.server_options = server_options
         #except xmlrpclib.Fault, err: *-*
         #    # TODO diagnose other faults.
@@ -142,7 +154,8 @@ class TCPConnection(Connection):
         if 'port' in kwargs:
             self.port = kwargs['port']
 
-        self._establish_int()
+        if do_init:
+            self._establish_int()
         return True
 
     def setupArgs(self, kwargs):
