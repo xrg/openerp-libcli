@@ -25,81 +25,10 @@
 #
 ##############################################################################
 
-import socket
-import cPickle
 import sys
 import logging
 import gzip
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
 import errno
-
-class Myexception(Exception):
-    def __init__(self, faultCode, faultString):
-        self.faultCode = faultCode
-        self.faultString = faultString
-        self.args = (faultCode, faultString)
-
-class mysocket:
-    def __init__(self, sock=None):
-        if sock is None:
-            self.sock = socket.socket( socket.AF_INET, socket.SOCK_STREAM)
-        else:
-            self.sock = sock
-        # self.sock.settimeout(120)
-        # prepare this socket for long operations: it may block for infinite
-        # time, but should exit as soon as the net is down
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-    def connect(self, host, port=False):
-        if not port:
-            protocol, buf = host.split('//')
-            host, port = buf.split(':')
-        self.sock.connect((host, int(port)))
-    def disconnect(self):
-        # on Mac, the connection is automatically shutdown when the server disconnect.
-        # see http://bugs.python.org/issue4397
-        if sys.platform != 'darwin':
-            self.sock.shutdown(socket.SHUT_RDWR)
-        self.sock.close()
-    def mysend(self, msg, exception=False, traceback=None):
-        msg = cPickle.dumps([msg,traceback])
-        size = len(msg)
-        self.sock.send('%8d' % size)
-        self.sock.send(exception and "1" or "0")
-        totalsent = 0
-        while totalsent < size:
-            sent = self.sock.send(msg[totalsent:])
-            if sent == 0:
-                raise RuntimeError, "socket connection broken"
-            totalsent = totalsent + sent
-    def myreceive(self):
-        buf=''
-        while len(buf) < 8:
-            chunk = self.sock.recv(8 - len(buf))
-            if not chunk:
-                raise RuntimeError, "socket connection broken"
-            buf += chunk
-        size = int(buf)
-        buf = self.sock.recv(1)
-        if buf != "0":
-            exception = buf
-        else:
-            exception = False
-        msg = ''
-        while len(msg) < size:
-            chunk = self.sock.recv(size-len(msg))
-            if not chunk :
-                raise RuntimeError, "socket connection broken"
-            msg = msg + chunk
-        res = cPickle.loads(msg)
-        if isinstance(res[0],Exception):
-            if exception:
-                raise Myexception(str(res[0]), str(res[1]))
-            raise res[0]
-        else:
-            return res[0]
 
 from xmlrpclib import Transport,ProtocolError
 
@@ -533,5 +462,81 @@ class PersistentAuthTransport(addAuthTransport,PersistentTransport):
 
 class SafePersistentAuthTransport(addAuthTransport,SafePersistentTransport):
     pass
+
+# ----------------------- Junk
+
+    def login(self, url):
+        """Logs in the given server with specified name and password.
+            @param url dictionary of connection parameters
+            Returns Session.Exception, Session.InvalidCredentials or Session.LoggedIn
+        """
+        if self.url and url != self.url:
+            # perhaps a different server, retry for XML-RPC v2
+            self.allow_xmlrpc2 = True
+
+        conn = createConnection(url, allow_xmlrpc2=self.allow_xmlrpc2 )
+        user = url['user']
+        password = url['passwd']
+        db = url['dbname']
+
+        for ttry in (1, 2):
+            res = False
+            try:
+                res = conn.login(db, user, password)
+                if res:
+                    self._log.info('Logged into %s as %s', db, user)
+                break
+            except socket.error, e:
+                return Session.Exception
+            except tiny_socket.ProtocolError, e:
+                if e.errcode == 404 and isinstance(conn, XmlRpc2Connection):
+                    conn = createConnection(url, allow_xmlrpc2=False)
+                    self.allow_xmlrpc2 = False
+                    self._log.info("Server must be older, retrying with XML-RPC v.1")
+                    continue
+                self._log.error('Protocol error: %s', e)
+                return Session.InvalidCredentials
+            except Exception, e:
+                self._log.exception("login call exception:")
+                return Session.Exception
+            break  # for
+
+        if not res:
+            self.open=False
+            self.uid=False
+            return Session.InvalidCredentials
+
+        self.url = url
+        self.open = True
+        self.uid = res
+        self.userName = user
+        self.passwd = password
+        #self.password = password
+        self.databaseName = db
+        self.reloadContext()
+        return Session.LoggedIn
+
+    ## @brief Reloads the session context
+    #
+    # Useful when some user parameters such as language are changed.
+    def reloadContext(self):
+        self.context = self.execute('/object', 'execute', 'res.users', 'context_get') or {}
+        conn = self.connections.borrow(self.conn_timeout)
+            if 'xmlrpc-gzip' in self.server_options \
+                    and isinstance(conn, (XmlRpcConnection, XmlRpc2Connection)):
+                conn._send_gzip = True
+                self._log.debug("Going gzip for %s..", makeurl(self.url))
+        self.connections.free(conn)
+
+## @brief The Session class provides a simple way of login and executing function in a server
+# *-*
+# Typical usage of Session:
+#
+# \code
+# from Koo import Rpc
+# Rpc.session.login('http://admin:admin\@localhost:8069', 'database')
+# attached = Rpc.session.execute('/object', 'execute', 'ir.attachment', 'read', [1,2,3])
+# Rpc.session.logout()
+# \endcode
 
 #eof
