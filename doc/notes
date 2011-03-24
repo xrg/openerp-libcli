@@ -1,0 +1,46 @@
+
+
+--------
+Draft notes
+
+Structure of classes:
+   - Communication layer (http, net-rpc)
+   - RPC layer
+   - openobject layer
+   - facilities layer (notifications, object juggling?)
+
+   - utilities
+
+  o Have a single entry point to the library. 
+    "from openerp_libclient.rpc import RpcProxy"
+
+Sessions:
+    they are a "login" to the openerp server.
+    Library can have multiple. However, it keeps a reference to the "root"
+    one, which will be used by default when static class methods are called
+    (like RpcProxy() w/o arguments ).
+
+Notifications:
+    The session object shall have a pluggable notification object. This object
+    will determine the behaviour when things go wrong.
+
+Threading:
+    Library shall be thread safe all along.
+    Slow calls may call the notification framework to show a progress bar
+
+Asynchronous:
+    TODO. 
+
+Connections:
+    keep a pool of connections. Reuse them if possible.
+    Allow connections to expire, close!
+    Test connections, keepalive, have reasonable tcp timeout (unit tests for that)
+    Connection parameters shall be a _dict_ . Write a function to express them as
+    string (url) and back. Store them at session!
+    
+Authentication:
+    Have a separate classs. By default, password will generate an PasswdAuth()
+    instance, transparently.
+
+
+
