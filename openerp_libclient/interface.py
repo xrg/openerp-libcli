@@ -24,6 +24,7 @@
 import logging
 import re
 from dict_tools import dict_filter
+from errors import RpcProtocolException, RpcServerException, RpcNetworkException
 
 """This module provides the essential interface classes
 """
@@ -64,9 +65,10 @@ class Connection(object):
                 raise TypeError("server options are %s, expected list" % type(server_options))
             self._log.debug("got server options: %s", ', '.join(server_options))
             self._session.server_options = server_options
-        #except xmlrpclib.Fault, err: *-*
-        #    # TODO diagnose other faults.
-        #    self.server_options = []
+        except RpcServerException, e:
+            # an older server, doesn't know about options. Never mind.
+            self._log.info("Could not get server's options: %s", e.get_title())
+            self._session.server_options = []
         except Exception, e:
             self._log.warning("Could not get server's options:", exc_info=True)
             self._session.server_options = []
@@ -188,12 +190,22 @@ class RPCNotifier(object):
         """
             @param exc must be a tuple of exception information, from sys.exc_info(), or None
         """
-        self.logger.log(logging.ERROR, msg, *args, exc_info=kwargs.get('exc_info', None))
+        exc_info = None
+        if 'exc_info' in kwargs:
+            exc_info = kwargs['exc_info']
+            if exc_info[0] == RpcNetworkException:
+                self.logger.log(logging.ERROR, msg, *args) # no traceback
+                return
+        self.logger.log(logging.ERROR, msg, *args, exc_info=exc_info)
 
     def handleError(self, msg, *args):
         self.logger.error(msg, *args)
 
-    def handleWarning(self, msg, *args):
+    def handleWarning(self, msg, *args, **kwargs):
+        """ Issue a warning to user.
+        Some properties can be specified in kwargs, sugh as:
+            auto_close: display in an asynchronous way and return immediately to caller.
+        """
         self.logger.warning(msg, *args)
 
     def userAlert(self, msg, *args):

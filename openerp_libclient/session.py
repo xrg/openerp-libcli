@@ -22,7 +22,7 @@
 ##############################################################################
 
 from utils import Pool
-from errors import RpcException, RpcNetworkException, RpcProtocolException
+from errors import RpcException, RpcNetworkException, RpcProtocolException, RpcNoProtocolException
 from interface import Connection, RPCNotifier
 import logging
 import sys
@@ -153,10 +153,14 @@ class Session(object):
                     conn.establish(kwargs, do_init=True)
             except RpcNetworkException, e:
                 # we know that the server is useless here
-                self._notifier.handleException(e.code, exc_info=sys.exc_info())
-                break
-            except RpcException:
-                self._notifier.handleWarning("Cannot use %s protocol, continuing", pklass.name)
+                self._notifier.handleException(e.info, exc_info=sys.exc_info())
+                raise
+            except RpcNoProtocolException:
+                self._log.warning("Cannot use %s protocol, continuing", pklass.name)
+                continue
+            except RpcProtocolException, exc:
+                self._notifier.handleWarning("Cannot use %s protocol for %s: %s. Perhaps this is not the correct server URL.",
+                    pklass.name, conn.prettyUrl(), exc.info, auto_close=True)
                 continue
             except Exception, e:
                 exc_info = sys.exc_info()

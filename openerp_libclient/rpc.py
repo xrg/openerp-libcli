@@ -32,6 +32,7 @@
 import logging
 import session
 import protocols
+from errors import RpcProtocolException, RpcException
 
 ## @brief The Database class handles queries that don't require a previous login, served by the db server object
 class Database(object):
@@ -105,7 +106,7 @@ class RpcFunction(object):
             if 'exec_dict' not in self.proxy.session.server_options:
                 # There is no safe way to convert back to positional arguments,
                 # so just report that to caller.
-                raise RpcException("The server we are connected doesn't support keyword arguments.")
+                raise RpcProtocolException("The server we are connected doesn't support keyword arguments.")
             return self.proxy.session.call('/object', 'exec_dict', 
                                 (self.proxy.resource, self.func, list(args), kwargs))
         return self.proxy.session.call('/object', 'execute', 

@@ -27,7 +27,7 @@ import gzip
 import errno
 import socket
 from xmlrpclib import Transport,ProtocolError, ServerProxy, Fault
-from errors import RpcProtocolException, RpcServerException, Rpc2ServerException
+import errors
 from interface import TCPConnection
 import httplib
 
@@ -170,6 +170,11 @@ class HTTP11(httplib.HTTP):
         conn.response_class = HTTPResponse2
         httplib.HTTP._setup(self, conn)
 
+    def connect(self):
+        ret = super(HTTP11, self).connect()
+        self.sock.setsockopt(socket.SO_KEEPALIVE, True)
+        return ret
+
 try:
     if sys.version_info[0:2] < (2,6):
             # print "No https for python %d.%d" % sys.version_info[0:2]
@@ -187,6 +192,11 @@ try:
         def _setup(self,conn):
             conn.response_class = HTTPResponse2
             httplib.HTTPS._setup(self, conn)
+    
+        def connect(self):
+            ret = super(HTTPS, self).connect()
+            self.sock.setsockopt(socket.SO_KEEPALIVE, True)
+            return ret
 
 except AttributeError:
     # if not in httplib, define a class that will always fail.
@@ -252,7 +262,10 @@ class PersistentTransport(Transport):
                 respdata = rbuffer.read()
                 if not respdata:
                     break
-                p.feed(respdata)
+                try:
+                    p.feed(respdata)
+                except Exception, e:
+                    raise errors.RpcProtocolException(unicode(e))
         else:
             while not response.isclosed():
                 rdata = response.read(1024)
@@ -260,7 +273,10 @@ class PersistentTransport(Transport):
                     break
                 if self.verbose:
                     print "body:", repr(response)
-                p.feed(rdata)
+                try:
+                    p.feed(rdata)
+                except Exception, e:
+                    raise errors.RpcProtocolException(unicode(e))
                 if len(rdata)<1024:
                     break
 
@@ -547,12 +563,21 @@ class XmlRpcConnection(TCPConnection):
             cargs += tuple(args)
             result = function( *cargs )
         except socket.error, err:
-            print "socket.error",err
-            raise RpcProtocolException( err )
+            if err.errno in errors.ENONET:
+                raise errors.RpcNetworkException(err.strerror, err.errno)
+            self._log.error("socket error: %s" % err)
+            self._log.debug("call %s.%s(%r)", obj, method, args)
+            raise errors.RpcProtocolException( err )
+        except ProtocolError, err:
+            if err.errcode == 404:
+                raise errors.RpcNoProtocolException(err.errmsg)
+            raise errors.RpcProtocolException(err.errmsg)
         except Fault, err:
-            raise RpcServerException( err.faultCode, err.faultString )
-        except Exception, e:
-            print "Exception:",e
+            raise errors.RpcServerException( err.faultCode, err.faultString )
+        except errors.RpcException:
+            raise
+        except Exception:
+            self._log.exception("Exception:")
             raise
         return result
 
@@ -638,18 +663,26 @@ class XmlRpc2Connection(XmlRpcConnection):
             else:
                 result = function( *args )
         except socket.error, err:
+            if err.errno in errors.ENONET:
+                raise errors.RpcNetworkException(err.strerror, err.errno)
             self._log.error("socket error: %s" % err)
             self._log.debug("call %s.%s(%r)", obj, method, args)
-            raise RpcProtocolException( err )
+            raise errors.RpcProtocolException( err )
+        except ProtocolError, err:
+            if err.errcode == 404:
+                raise errors.RpcNoProtocolException(err.errmsg)
+            raise errors.RpcProtocolException(err.errmsg)
         except Fault, err:
             self._log.error( "xmlrpclib.Fault on %s/%s(%s): %s" % (obj,str(method), args[:2], err.faultString))
-            raise Rpc2ServerException( err.faultCode, err.faultString )
+            raise errors.Rpc2ServerException( err.faultCode, err.faultString )
+        except errors.RpcException:
+            raise
         except Exception:
             self._log.exception("Exception:")
             raise
         return result
 
-    def call2(self, obj, method, args, auth_level='db'):
+    def call2(self, obj, method, args, auth_level='db'): # must go!
         """ Variant of call(), with a temporary gateway, for login """
         remote = self.gw(obj, auth_level, temp=True)
         function = getattr(remote, method)
@@ -660,10 +693,10 @@ class XmlRpc2Connection(XmlRpcConnection):
                 self._ogws[obj] = remote
         except socket.error, err:
             self._log.error("socket error: %s" % err)
-            raise RpcProtocolException( err )
+            raise errors.RpcProtocolException( err )
         except Fault, err:
             self._log.error( "xmlrpclib.Fault on %s/%s(%s): %s" % (obj,str(method), str(args[:2]), err))
-            raise RpcServerException( err.faultCode, err.faultString )
+            raise errors.RpcServerException( err.faultCode, err.faultString )
         except ProtocolError:
             raise # silently
         except Exception:
