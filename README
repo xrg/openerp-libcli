@@ -1,1 +1,7 @@
 This repository contains a client library for the OpenERP server RPC protocol.
+
+License
+---------
+You are free to use this library in both open source and commercial applications.
+However, any modifications/enhancements to this library are kindly requested to
+be sent back to the authors.
