@@ -21,6 +21,9 @@
 #
 ##############################################################################
 
+import errno
+
+ENONET = (errno.ECONNREFUSED, errno.ECONNRESET, errno.ECONNABORTED, errno.ENOENT)
 class RpcException(Exception):
     def __init__(self, info):
         self.code = None
@@ -32,8 +35,18 @@ class RpcProtocolException(RpcException):
     def __init__(self, backtrace):
         self.code = None
         self.args = (backtrace,)
-        self.info = unicode( str(backtrace), 'utf-8' )
+        if isinstance(backtrace, unicode):
+            self.info = backtrace
+        else:
+            self.info = unicode( str(backtrace), 'utf-8' )
         self.backtrace = backtrace
+
+class RpcNoProtocolException(RpcProtocolException):
+    """Raised when protocol doesn't exist
+    
+        Typically, when the http server can't answer /xmlrpc[2] path
+    """
+    pass
 
 class RpcServerException(RpcException):
     def __init__(self, code, backtrace):
@@ -81,9 +94,11 @@ class RpcServerException(RpcException):
 class RpcNetworkException(RpcException):
     """This means network has failed, server unreachable etc.
     
-	It shall /not/ be used when the protocol fails. Only layers 1-3 here!
+        It shall /not/ be used when the protocol fails. Only layers 1-3 here!
     """
-    pass
+    def __init__(self, info, errno=None):
+        super(RpcNetworkException,self).__init__(info)
+        self.code = errno
 
 class Rpc2ServerException(RpcServerException):
     def __init__(self, code, string):
