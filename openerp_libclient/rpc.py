@@ -112,4 +112,30 @@ class RpcFunction(object):
         return self.proxy.session.call('/object', 'execute', 
                             (self.proxy.resource, self.func ) + args )
 
+class RpcCustomProxy(object):
+    """ A lower-level proxy, for custom RPC methods
+    """
+    
+    def __init__(self, path, session=None, auth_level='pub', notify=True):
+        global default_session
+        self.path = path
+        self.session = session or default_session
+        self.auth_level = auth_level
+        self.notify = notify
+        self.__attrs = {}
+
+    def __getattr__(self, name):
+        if not name in self.__attrs:
+            self.__attrs[name] = RpcCustomFunction(self, name)
+        return self.__attrs[name]
+
+class RpcCustomFunction(object):
+    def __init__(self, proxy, func_name):
+        self.proxy = proxy
+        self.func = func_name
+
+    def __call__(self, *args):
+        return self.proxy.session.call(self.proxy.path, self.func, args,
+                        auth_level=self.proxy.auth_level, notify=self.proxy.notify)
+
 #eof

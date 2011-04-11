@@ -127,6 +127,8 @@ class SocketConnection(TCPConnection):
                 cargs = (obj, method, apro.dbname, apro.user, apro.passwd)
             elif auth_level == 'db':
                 cargs = (obj, method, apro.dbname, apro.uid, apro.passwd)
+            elif auth_level == 'root':
+                cargs = (obj, method, apro.superpass)
             else:
                 cargs = (obj, method)
             s.mysend( cargs + encodedArgs)

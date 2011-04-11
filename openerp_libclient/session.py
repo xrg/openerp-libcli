@@ -100,7 +100,7 @@ class Session(object):
             raise RpcException('Not logged in')
         conn = self.connections.borrow(self.conn_timeout)
         try:
-            value = conn.call(obj, method, args)
+            value = conn.call(obj, method, args, auth_level=auth_level)
         except Exception, e:
             if notify:
                 self._notifier.handleException("Failed to call %s/%s", obj, method, exc_info=sys.exc_info())

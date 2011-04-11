@@ -558,6 +558,8 @@ class XmlRpcConnection(TCPConnection):
                 cargs = (apro.dbname, apro.user, apro.passwd)
             elif auth_level == 'db':
                 cargs = (apro.dbname, apro.uid, apro.passwd)
+            elif auth_level == 'root':
+                cargs = (apro.superpass,)
             else:
                 cargs = ()
             cargs += tuple(args)
@@ -613,6 +615,9 @@ class XmlRpc2Connection(XmlRpcConnection):
         if not self._authclient.hasRealm("OpenERP User"):
             self._authclient.addLogin("OpenERP User", self._session.auth_proxy.user, self._session.auth_proxy.passwd)
             update = True
+        if not self._authclient.hasRealm("OpenERP Admin") \
+                and self._session.auth_proxy.superpass:
+            self._authclient.addLogin("OpenERP Admin", 'root', self._session.auth_proxy.superpass)
         if update:
             self._transport.setAuthClient(self._authclient)
 
