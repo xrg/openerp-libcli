@@ -117,13 +117,18 @@ class MyLogHandler(object):
                 else:
                     lname = COLOR_PATTERN % (30 + fg_color, 40 + bg_color, lname)
         print "%s:%s:%s" % (lname, rec.name, rec.msg)
+        if rec.exc_text:
+            # no formatting yet
+            print rec.exc_text
 
 class RemoteLogTransport(PersistentAuthTransport):
     """ Reuse the RPC code for plain HTTP requests
     """
-    def __init__(self):
+    def __init__(self, host, port):
         PersistentAuthTransport.__init__(self)
         self.log_handler = MyLogHandler(use_color=True)
+        self.log_offset = None
+        self.hostport = '%s:%s' % (host, port)
         
     def getparser(self):
         p = u = MyLogParser(self.log_handler)
@@ -155,14 +160,36 @@ class RemoteLogTransport(PersistentAuthTransport):
     def send_request(self, connection, handler, request_body):
         connection.putrequest("GET", handler, skip_accept_encoding=1)
 
+    def _parse_response(self, response):
+        """ override parent to catch some headers
+        """
+        if 'X-Log-LastPos' in response.msg:
+            self.log_offset = int(response.msg.get('X-Log-LastPos'))
+        return PersistentAuthTransport._parse_response(self, response)
+
+    def process_next_logs(self):
+        """Wait (blocking) and process next batch of log records
+        
+        OpenERP server sends log records in time-based batches. This
+        function will wait for the next ones to arrive, and then handle
+        them
+        """
+        parms = '/_logs?limit=50&wait=1'
+        if self.log_offset:
+            parms += '&offset=%d' % self.log_offset
+        self.request(self.hostport, parms, None, verbose=False)
 
 ba = BasicAuthClient()
 
-t = RemoteLogTransport()
+t = RemoteLogTransport('localhost', 8169)
 t.setAuthClient(ba)
 
 ba.addLogin('OpenERP Admin', 'root', 'admin')
 
-print t.request('localhost:8169', '/_logs',None, verbose=True)
+try:
+    while True:
+        t.process_next_logs()
+except KeyboardInterrupt:
+    pass
 
 #eof
