@@ -682,6 +682,12 @@ class XmlRpc2Connection(XmlRpcConnection):
             raise errors.Rpc2ServerException( err.faultCode, err.faultString )
         except errors.RpcException:
             raise
+        except TypeError:
+            # may come from marshalling, so it's useful to dump the arguments
+            self._log.exception("Exception:")
+            if auth_level != 'login':
+                self._log.debug("Arguments: %r", args)
+            raise
         except Exception:
             self._log.exception("Exception:")
             raise
