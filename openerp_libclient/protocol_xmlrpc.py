@@ -513,7 +513,7 @@ class XmlRpcConnection(TCPConnection):
         """
         pass
 
-    def establish(self, kwargs, do_init=True):
+    def establish(self, kwargs, do_init=False):
         if 'host' in kwargs:
             self.host = kwargs['host']
         if 'port' in kwargs:

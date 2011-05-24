@@ -63,7 +63,8 @@ class Session(object):
             return None # but don't break the loop
         newconn = self.__conn_klass(self)
         assert isinstance(newconn, Connection)
-        newconn.establish()
+        if not newconn.establish(self.conn_args, do_init=False):
+            return None
         return newconn
 
     def _check_connection(self, conn):
@@ -167,6 +168,7 @@ class Session(object):
                 self._notifier.handleException("Cannot connect to server: %s", e, exc_info=exc_info)
                 raise
             self.connections.push_used(conn)
+            self.__conn_klass = pklass  # reuse this class for all subsequent connections
             self.conn_args = conn.setupArgs(kwargs)
             self.state = 'open'
             self.connections.free(conn)
