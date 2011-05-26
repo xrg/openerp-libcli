@@ -472,6 +472,7 @@ class addAuthTransport:
                                 'Server-incomplete authentication', resp.msg)
 
             if resp.status != 200:
+                resp.read()
                 raise ProtocolError( host + handler,
                     resp.status, resp.reason, resp.msg )
 
