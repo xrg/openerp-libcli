@@ -22,7 +22,7 @@
 ##############################################################################
 
 from utils import Pool
-from errors import RpcException, RpcNetworkException, RpcProtocolException, RpcNoProtocolException
+from errors import RpcException, RpcNetworkException, RpcProtocolException, RpcNoProtocolException, RpcServerException
 from interface import Connection, RPCNotifier
 import logging
 import sys
@@ -102,6 +102,13 @@ class Session(object):
         conn = self.connections.borrow(self.conn_timeout)
         try:
             value = conn.call(obj, method, args, auth_level=auth_level)
+        except RpcServerException, e:
+            import inspect
+            if notify:
+                sframe = inspect.currentframe()
+                sframe = sframe and sframe.f_back
+                self._notifier.handleRemoteException("Failed to call %s/%s: %s", obj, method, e.args[0], exc_info=sys.exc_info(), frame_info=sframe)
+            raise
         except Exception, e:
             if notify:
                 self._notifier.handleException("Failed to call %s/%s", obj, method, exc_info=sys.exc_info())
@@ -250,5 +257,57 @@ class Session(object):
         """
         # TODO
         return False
+
+class FilterNotifier(RPCNotifier):
+    """ A notifier that passes each message through a filter
+    
+        self._filter_fn is a function that takes the notification
+        message and returns another string. If it returns empty, no
+        notification will happen.
+    """
+    _filter_fn = lambda a: a
+    
+    def handleException(self, msg, *args, **kwargs):
+        msg = self._filter_fn(msg)
+        if not msg:
+            return
+        return super(FilterNotifier, self).handleException(msg, *args, **kwargs)
+
+    def handleRemoteException(self, msg, *args, **kwargs):
+        msg = self._filter_fn(msg)
+        import traceback
+        if not msg:
+            return
+        exc_info = kwargs.get('exc_info', False)
+        self.logger.log(logging.ERROR, msg, *args)
+        if kwargs.get('frame_info'):
+            err2 = "Local Traceback (most recent call last):\n"
+            err2 += ''.join(traceback.format_stack(kwargs['frame_info'], 8))
+            err2 = self._filter_fn(err2)
+            if err2:
+                self.logger.error(err2)
+        if exc_info:
+            err2 = "Remote %s" % exc_info[1].backtrace
+            err2 = self._filter_fn(err2)
+            if err2:
+                self.logger.error(err2)
+
+    def handleError(self, msg, *args):
+        msg = self._filter_fn(msg)
+        if not msg:
+            return
+        return super(FilterNotifier, self).handleError(msg, *args)
+
+    def handleWarning(self, msg, *args, **kwargs):
+        msg = self._filter_fn(msg)
+        if not msg:
+            return
+        return super(FilterNotifier, self).handleWarning(msg, *args, **kwargs)
+
+    def userAlert(self, msg, *args):
+        msg = self._filter_fn(msg)
+        if not msg:
+            return
+        return super(FilterNotifier, self).userAlert(msg, *args)
 
 #eof
