@@ -25,6 +25,7 @@ import logging
 import re
 from dict_tools import dict_filter
 from errors import RpcProtocolException, RpcServerException, RpcNetworkException
+import traceback
 
 """This module provides the essential interface classes
 """
@@ -39,6 +40,7 @@ class Connection(object):
     def __init__(self, session):
         assert session
         self._log = logging.getLogger('RPC.Connection')
+        self._remotelog = logging.getLogger('RPC.Remote')
         self._session = session
 
     def check(self):
@@ -197,6 +199,17 @@ class RPCNotifier(object):
                 self.logger.log(logging.ERROR, msg, *args) # no traceback
                 return
         self.logger.log(logging.ERROR, msg, *args, exc_info=exc_info)
+
+    def handleRemoteException(self, msg, *args, **kwargs):
+        """
+            @param exc must be a tuple of exception information, from sys.exc_info(), or None
+        """
+        exc_info = kwargs.get('exc_info', False)
+        self.logger.log(logging.ERROR, msg, *args)
+        if kwargs.get('frame_info'):
+            self.logger.error("Local Traceback (most recent call last):\n%s", ''.join(traceback.format_stack(kwargs['frame_info'], 8)))
+        if exc_info:
+            self.logger.error("Remote %s", exc_info[1].backtrace)
 
     def handleError(self, msg, *args):
         self.logger.error(msg, *args)

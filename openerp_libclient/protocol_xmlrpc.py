@@ -374,7 +374,7 @@ import base64
 class BasicAuthClient(AuthClient):
     def __init__(self):
         self._realm_dict = {}
-        self._log = logging.getLogger('BasicAuthClient')
+        self._log = logging.getLogger('RPC.BasicAuthClient')
 
     def getAuth(self, atype, realm):
         if atype != 'Basic' :
@@ -678,7 +678,7 @@ class XmlRpc2Connection(XmlRpcConnection):
                 raise errors.RpcNoProtocolException(err.errmsg)
             raise errors.RpcProtocolException(err.errmsg)
         except Fault, err:
-            self._log.error( "xmlrpclib.Fault on %s/%s(%s): %s" % (obj,str(method), args[:2], err.faultString))
+            self._remotelog.error( "xmlrpclib.Fault on %s/%s(%s): %s" % (obj,str(method), args[:2], err.faultString))
             raise errors.Rpc2ServerException( err.faultCode, err.faultString )
         except errors.RpcException:
             raise
@@ -706,7 +706,7 @@ class XmlRpc2Connection(XmlRpcConnection):
             self._log.error("socket error: %s" % err)
             raise errors.RpcProtocolException( err )
         except Fault, err:
-            self._log.error( "xmlrpclib.Fault on %s/%s(%s): %s" % (obj,str(method), str(args[:2]), err))
+            self._remotelog.error( "xmlrpclib.Fault on %s/%s(%s): %s" % (obj,str(method), str(args[:2]), err))
             raise errors.RpcServerException( err.faultCode, err.faultString )
         except ProtocolError:
             raise # silently

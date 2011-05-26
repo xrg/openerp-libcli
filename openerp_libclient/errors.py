@@ -72,6 +72,7 @@ class RpcServerException(RpcException):
             self.args = ('' , backtrace)
 
         self.backtrace = backtrace
+
     def __str__(self):
         if self.backtrace and '\n' in self.backtrace:
             bt = self.backtrace.split("\n")[-3:-2]
