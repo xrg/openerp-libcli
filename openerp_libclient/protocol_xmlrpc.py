@@ -332,9 +332,13 @@ class PersistentTransport(Transport):
 
         connection.putheader("Content-Length", str(len(request_body)))
         connection.putheader("Accept-Encoding",'gzip')
-        connection.endheaders()
-        if request_body:
-            connection.send(request_body)
+        if sys.version_info[0:2] >= (2,7):
+            connection.endheaders(request_body)
+        else:
+            connection.endheaders()
+            # FIXME: here is where Nagle kicks in and ruins throughput
+            if request_body:
+                connection.send(request_body)
 
     def send_request(self, connection, handler, request_body):
         connection.putrequest("POST", handler, skip_accept_encoding=1)
