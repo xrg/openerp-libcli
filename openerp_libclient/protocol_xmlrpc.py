@@ -335,10 +335,31 @@ class PersistentTransport(Transport):
         if sys.version_info[0:2] >= (2,7):
             connection.endheaders(request_body)
         else:
-            connection.endheaders()
-            # FIXME: here is where Nagle kicks in and ruins throughput
-            if request_body:
-                connection.send(request_body)
+            self.__send_all_headers(connection._conn, request_body)
+
+    def __send_all_headers(self, conn, message_body):
+        """ the equivalent of conn.endheaders(...)
+        
+            Copied from python2.7, backporting to earlier ones
+        """
+        if conn._HTTPConnection__state == httplib._CS_REQ_STARTED:
+            conn._HTTPConnection__state = httplib._CS_REQ_SENT
+        else:
+            raise CannotSendHeader()
+        conn._buffer.extend(("", ""))
+        msg = "\r\n".join(conn._buffer)
+        del conn._buffer[:]
+        # If msg and message_body are sent in a single send() call,
+        # it will avoid performance problems caused by the interaction
+        # between delayed ack and the Nagle algorithim.
+        if isinstance(message_body, str):
+            msg += message_body
+            message_body = None
+        conn.send(msg)
+        if message_body is not None:
+            #message_body was not a string (i.e. it is a file) and
+            #we must run the risk of Nagle
+            conn.send(message_body)
 
     def send_request(self, connection, handler, request_body):
         connection.putrequest("POST", handler, skip_accept_encoding=1)
