@@ -87,6 +87,7 @@ class Pool(object):
                 if not blocking:
                     raise ValueError("No free resource")
                 # else pass
+                self.__lock.acquire()
 
             if isinstance(blocking, (int, float)):
                 twait = blocking
@@ -96,6 +97,7 @@ class Pool(object):
                 twait = 10.0 # must continue cycle at some point!
             self.__lock.wait(twait) # As condition
             if not len(self.__free_ones):
+                self.__lock.release()
                 raise ValueError("Timed out waiting for a free resource")
             continue
 
