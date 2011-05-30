@@ -321,7 +321,7 @@ class PersistentTransport(Transport):
     def send_content(self, connection, request_body):
         connection.putheader("Content-Type", "text/xml")
 
-        if self._send_gzip and len(request_body) > 512:
+        if self._send_gzip and len(request_body) > 200:
             buffer = StringIO()
             output = gzip.GzipFile(mode='wb', fileobj=buffer)
             output.write(request_body)
