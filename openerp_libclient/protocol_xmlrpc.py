@@ -172,7 +172,9 @@ class HTTP11(httplib.HTTP):
 
     def connect(self):
         ret = super(HTTP11, self).connect()
-        self.sock.setsockopt(socket.SO_KEEPALIVE, True)
+        # FIXME: this function is not called, we must put that code 
+        # somewhere else..
+        #self.sock.setsockopt(socket.SO_KEEPALIVE, True)
         return ret
 
 try:
@@ -212,6 +214,7 @@ class PersistentTransport(Transport):
         self._use_datetime = use_datetime
         self._http_conn = None
         self._http_host = None
+        self._common_headers_sent = {}
         self._log = logging.getLogger('RPC.Transport')
         self._send_gzip = send_gzip
         # print "Using persistent transport"
@@ -229,6 +232,7 @@ class PersistentTransport(Transport):
             self._http_conn = HTTP11(host)
             self._log.info("New connection to %s", host)
             self._http_host = host
+            self._common_headers_sent = {}
 
         return self._http_conn
 
@@ -317,6 +321,16 @@ class PersistentTransport(Transport):
             return self._parse_response(resp)
         finally:
             if resp: resp.close()
+
+    def send_host(self, h, host):
+        if self._common_headers_sent.get('host', False) != host:
+            Transport.send_host(self, h, host)
+            self._common_headers_sent['host'] = host
+
+    def send_user_agent(self, h):
+        if not self._common_headers_sent.get('user_agent', False):
+            Transport.send_user_agent(self, h)
+            self._common_headers_sent['user_agent'] = True
 
     def send_content(self, connection, request_body):
         connection.putheader("Content-Type", "text/xml")
