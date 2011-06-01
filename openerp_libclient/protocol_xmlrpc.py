@@ -675,9 +675,9 @@ class XmlRpc2Connection(XmlRpcConnection):
             url = '%s://%s:%s/xmlrpc2/' % (self.codename, self.host, self.port)
             
             if auth_level in ('db', 'login'):
-                url += 'db/' + self._session.auth_proxy.dbname
+                url += 'db/' + str(self._session.auth_proxy.dbname)
             else:
-                url += auth_level
+                url += str(auth_level)
             url += obj
             self._log.debug("path: %s for %s", url, obj)
             nproxy = ServerProxy( url, transport=self._transport)
