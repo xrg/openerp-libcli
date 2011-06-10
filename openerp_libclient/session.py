@@ -72,7 +72,7 @@ class Session(object):
     
     def __create_connection_int(self):
         assert self.__conn_klass, "Cannot create session connections before login"
-        if len(self.connections) > self.session_limit:
+        if len(self.connections) >= self.session_limit:
             return None # but don't break the loop
         newconn = self.__conn_klass(self)
         assert isinstance(newconn, Connection)
