@@ -30,6 +30,7 @@
 ##############################################################################
 
 from threading import Condition
+import time
 
 class Pool(object):
     """ A pool of resources, which can be requested one at-a-time
@@ -55,6 +56,7 @@ class Pool(object):
         """Return the next free member of the pool
         """
         self.__lock.acquire()
+        t2 = 0.0
         while(True):
             ret = None
             if len(self.__free_ones):
@@ -90,15 +92,19 @@ class Pool(object):
                 self.__lock.acquire()
 
             if isinstance(blocking, (int, float)):
-                twait = blocking
+                twait = blocking - t2
             else:
                 twait = None
             if (not twait) and not len(self.__free_ones):
                 twait = 10.0 # must continue cycle at some point!
-            self.__lock.wait(twait) # As condition
-            if not len(self.__free_ones):
+            if twait > 0.0:
+                t1 = time.time()
+                self.__lock.wait(twait) # As condition
+                t1 = time.time() - t1
+            if ((twait - t2) < 0) and not len(self.__free_ones):
                 self.__lock.release()
                 raise ValueError("Timed out waiting for a free resource")
+            t2 += t1
             continue
 
         raise RuntimeError("Should never reach here")
