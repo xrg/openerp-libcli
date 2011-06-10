@@ -34,11 +34,20 @@ import session
 import protocols
 from errors import RpcProtocolException, RpcException
 
-## @brief The Database class handles queries that don't require a previous login, served by the db server object
+""" RPC module provides convenience classes, that give direct access to OpenERP objects
+
+It is based on the older RPC proxy implementations of openerp-client and koo
+"""
+
 class Database(object):
-    ## @brief Obtains the list of available databases from the given URL. None if there 
-    # was an error trying to fetch the list.
+    """The Database class handles queries that don't require a previous login, served by the db server object
+    """
+
     def list(self, url):
+        """ Obtains the list of available databases from the given URL.
+        
+        None if there was an error trying to fetch the list.
+        """
         try:
             return self.call( url, 'list' )
         except Exception,e:
@@ -71,19 +80,24 @@ database = Database()
 default_session = None
 
 def openSession(**kwargs):
+    """ open a session as the default one
+    """
     global default_session
     default_session = session.Session()
     default_session.open(**kwargs)
 
 def login():
+    """ Login the default session
+    """
     global default_session
     return default_session.login()
 
-## @brief The RpcProxy class allows wrapping a server object only by giving it's name.
-# 
-# For example: 
-# obj = RpcProxy('ir.values')
 class RpcProxy(object):
+    """ The RpcProxy class allows wrapping a server object only by giving it's name.
+    
+    For example:
+    @code obj = RpcProxy('ir.values')
+    """
     def __init__(self, resource, session=None):
         global default_session
         self.resource = resource
@@ -97,6 +111,11 @@ class RpcProxy(object):
     
 
 class RpcFunction(object):
+    """ emulate a server-side method call
+    
+        These objects are initialized through RpcProxy. You'd never need to
+        initialize them explicitly.
+    """
     def __init__(self, proxy, func_name):
         self.proxy = proxy
         self.func = func_name

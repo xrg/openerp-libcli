@@ -27,6 +27,12 @@ from interface import Connection, RPCNotifier
 import logging
 import sys
 
+""" A session is a (virtual) connection to an OpenERP server. 
+
+    It may use multiple TCP sockets (connections), but all share the same
+    credentials, behave like a single communication trunk (multi-threaded)
+    """
+
 class AbstractAuthProxy(object):
     """Provides authentication source for connections
     """
@@ -36,6 +42,8 @@ class AbstractAuthProxy(object):
         self.dbname = conn_params.get('dbname', None)
     
 class PasswdAuth(AbstractAuthProxy):
+    """ Password authentication source
+    """
     codename = 'password'
     def __init__(self, conn_params):
         super(PasswdAuth, self).__init__(conn_params)
@@ -45,6 +53,11 @@ class PasswdAuth(AbstractAuthProxy):
 
 
 class Session(object):
+    """ Main class for OpenERP connectivity
+    
+        Specifies a server, port, dbname
+        TODO: doc
+    """
     #LoggedIn = 0
     #Exception = 2
     #InvalidCredentials = 3

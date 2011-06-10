@@ -160,6 +160,10 @@ class HTTPResponse2(httplib.HTTPResponse):
 
     
 class HTTP11(httplib.HTTP):
+    """ enhancement over httplib.HTTP class, for persistent connections
+    
+    Needed in python <= 2.6, redundant in 2.7
+    """
     _http_vsn = 11
     _http_vsn_str = 'HTTP/1.1'
 
@@ -527,9 +531,11 @@ class addAuthTransport:
         raise ProtocolError(host+handler, 403, "No authentication",'')
 
 class PersistentAuthTransport(addAuthTransport,PersistentTransport):
+    """ HTTP transport, with transparent http-authentication support """
     pass
 
 class SafePersistentAuthTransport(addAuthTransport,SafePersistentTransport):
+    """ HTTPS transport, with http-authentication """
     pass
 
 session_counter = 0
@@ -624,9 +630,9 @@ class XmlRpcConnection(TCPConnection):
         return result
 
 class XmlRpcSConnection(XmlRpcConnection):
-    """@brief The XmlRpcConnection class implements Connection class for XML-RPC.
+    """@brief The XmlRpcConnection class implements Connection class for XML-RPC Secure.
 
-        The XML-RPC communication protocol is usually opened at port 8069 on the server.
+        The XML-RPC communication protocol is usually opened at port 8071 on the server.
     """
     name = "XML-RPCSv1"
     codename = 'https'

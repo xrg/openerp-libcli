@@ -25,6 +25,8 @@ import errno
 
 ENONET = (errno.ECONNREFUSED, errno.ECONNRESET, errno.ECONNABORTED, errno.ENOENT)
 class RpcException(Exception):
+    """ Generic exception of the RPC layer
+    """
     def __init__(self, info):
         self.code = None
         self.args = (info,)
@@ -32,6 +34,8 @@ class RpcException(Exception):
         self.backtrace = None
 
 class RpcProtocolException(RpcException):
+    """ Raised when the other side cannot speak the same protocol with us
+    """
     def __init__(self, backtrace):
         self.code = None
         self.args = (backtrace,)
@@ -49,6 +53,8 @@ class RpcNoProtocolException(RpcProtocolException):
     pass
 
 class RpcServerException(RpcException):
+    """ Raised by the other side, when server throws an exception
+    """
     def __init__(self, code, backtrace):
         self.code = code
         if hasattr(code, 'split'):
@@ -83,11 +89,13 @@ class RpcServerException(RpcException):
             (self.type, self.code, bt)
 
     def get_title(self):
+        """ Title for the user window """
         if self.args and self.args[0] != self.backtrace:
             return self.args[0]
         return ''
     
     def get_details(self):
+        """ Content of the user error window """
         if len(self.args) > 1 and self.args[1] != self.backtrace:
             return self.args[1]
         return ''
@@ -102,6 +110,11 @@ class RpcNetworkException(RpcException):
         self.code = errno
 
 class Rpc2ServerException(RpcServerException):
+    """ variant of RpcServerException for XML-RPC2
+        
+        It should be handled exactly like its parent. However, the parsing
+        algorithm differs
+        """
     def __init__(self, code, string):
         
         dic = { 'X-Exception': '', 'X-ExcOrigin': 'exception',
@@ -124,3 +137,5 @@ class Rpc2ServerException(RpcServerException):
         self.args = ( dic.get('X-Exception','Exception!'), 
                         dic.get('X-ExcDetails',''))
 
+
+#eof
