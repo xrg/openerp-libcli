@@ -99,15 +99,16 @@ class Session(object):
                                 self._check_connection)
         self._log = logging.getLogger('RPC.Session')
 
-    ## @brief Calls the specified method
-    # on the given object on the server. 
-    #
-    # If there is an error during the call it simply rises an exception. See 
-    # execute() if you want exceptions to be handled by the notification mechanism.
-    # @param obj Object name (string) that contains the method
-    # @param method Method name (string) to call 
-    # @param args Argument list for the given method
     def call(self, obj, method, args, auth_level='db', notify=True):
+        """ Calls the specified method on the given object on the server.
+
+            If there is an error during the call it simply rises an exception. See
+            execute() if you want exceptions to be handled by the notification mechanism.
+
+            @param obj Object name (string) that contains the method
+            @param method Method name (string) to call
+            @param args Argument list for the given method
+        """
         if (not self.state) or (auth_level == 'db' and self.state !='login'):
             if notify:
                 self._notifier.handleError("Not logged in")

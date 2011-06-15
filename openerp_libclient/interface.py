@@ -97,6 +97,8 @@ class Connection(object):
     def get_security(self):
         """ Retrieve info about security of connection
             TODO: ssl info.
+            
+            No, it won't call the cops.
         """
         return None
 
