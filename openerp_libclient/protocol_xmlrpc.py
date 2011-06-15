@@ -212,6 +212,8 @@ except AttributeError:
 
 class PersistentTransport(Transport):
     """Handles an HTTP transaction to an XML-RPC server, persistently."""
+    
+    _content_type = "text/xml"
 
     def __init__(self, use_datetime=0, send_gzip=False):
         Transport.__init__(self)
@@ -337,7 +339,13 @@ class PersistentTransport(Transport):
             self._common_headers_sent['user_agent'] = True
 
     def send_content(self, connection, request_body):
-        connection.putheader("Content-Type", "text/xml")
+        if not request_body:
+            connection.putheader("Content-Length",'0')
+            connection.putheader("Accept-Encoding",'gzip')
+            connection.endheaders()
+            return
+
+        connection.putheader("Content-Type", self._content_type)
 
         if self._send_gzip and len(request_body) > 200:
             buffer = StringIO()
