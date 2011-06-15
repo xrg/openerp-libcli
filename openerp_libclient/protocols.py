@@ -41,3 +41,9 @@ try:
     __hush_pyflakes = [ protocol_xmlrpc, ]
 except ImportError:
     logging.getLogger('RPC').warning("XML-RPC won't be available")
+
+try:
+    import protocol_rpcjson
+    __hush_pyflakes = [ protocol_rpcjson, ]
+except ImportError:
+    logging.getLogger('RPC').warning("RPC-JSON won't be available")
