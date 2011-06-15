@@ -118,29 +118,6 @@ class RemoteLogTransport(PersistentAuthTransport):
         p = u = MachineLogParser(self.log_handler)
         return p, u
 
-    def send_content(self, connection, request_body):
-        if not request_body:
-            connection.putheader("Content-Length",'0')
-            connection.putheader("Accept-Encoding",'gzip')
-            connection.endheaders()
-            return
-        connection.putheader("Content-Type", "text/xml")
-
-        if self._send_gzip and len(request_body) > 512:
-            buffer = StringIO()
-            output = gzip.GzipFile(mode='wb', fileobj=buffer)
-            output.write(request_body)
-            output.close()
-            buffer.seek(0)
-            request_body = buffer.getvalue()
-            connection.putheader('Content-Encoding', 'gzip')
-
-        connection.putheader("Content-Length", str(len(request_body)))
-        connection.putheader("Accept-Encoding",'gzip')
-        connection.endheaders()
-        if request_body:
-            connection.send(request_body)
-
     def send_request(self, connection, handler, request_body):
         connection.putrequest("GET", handler, skip_accept_encoding=1)
 
