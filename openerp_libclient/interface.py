@@ -94,6 +94,28 @@ class Connection(object):
         """
         raise NotImplementedError()
 
+    def call_orm(self, model, method, args, kwargs):
+        """ Perform an ORM call
+
+            By default, in versions 5.0 and 6.0 of the server, an ORM
+            call is dispatched like::
+
+                object/execute(model, *args)
+
+            or, with the xrg extension::
+
+                object/exec_dict(model, args, kwargs)
+        """
+        if kwargs:
+            if 'exec_dict' not in self._session.server_options:
+                # There is no safe way to convert back to positional arguments,
+                # so just report that to caller.
+                raise RpcProtocolException("The server we are connected doesn't support keyword arguments.")
+            return self.call('/object', 'exec_dict',
+                                (model, method, list(args), kwargs))
+        return self.call('/object', 'execute',
+                            [model, method] + list(args) )
+
     def get_security(self):
         """ Retrieve info about security of connection
             TODO: ssl info.

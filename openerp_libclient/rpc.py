@@ -121,15 +121,7 @@ class RpcFunction(object):
         self.func = func_name
 
     def __call__(self, *args, **kwargs):
-        if kwargs:
-            if 'exec_dict' not in self.proxy.session.server_options:
-                # There is no safe way to convert back to positional arguments,
-                # so just report that to caller.
-                raise RpcProtocolException("The server we are connected doesn't support keyword arguments.")
-            return self.proxy.session.call('/object', 'exec_dict', 
-                                (self.proxy.resource, self.func, list(args), kwargs))
-        return self.proxy.session.call('/object', 'execute', 
-                            (self.proxy.resource, self.func ) + args )
+        return self.proxy.session.call_orm(self.proxy.resource, self.func, list(args), kwargs)
 
 class RpcCustomProxy(object):
     """ A lower-level proxy, for custom RPC methods

@@ -131,6 +131,43 @@ class Session(object):
             self.connections.free(conn)
         return value
 
+    def call_orm(self, model, method, args, kwargs, notify=True):
+        """ variant of call(), focused on ORM object calls
+        
+            Since we end up calling object.execute(method, [params]) most of the
+            time, it is worth to have a simplified calling path for that operation.
+            With newer protocols, like RPC-JSON, this can be optimized in the
+            communications channel, too.
+            
+            @param model the ORM model
+            @param method the method, like read, search, write etc.
+            @param args positional arguments
+            @param kwargs keyword arguments. Not all servers support that.
+        """
+        if (not self.state) or (self.state !='login'):
+            if notify:
+                self._notifier.handleError("Not logged in")
+            raise RpcException('Not logged in')
+        conn = self.connections.borrow(self.conn_timeout)
+        try:
+            value = conn.call_orm(model, method, args, kwargs)
+        except RpcServerException, e:
+            import inspect
+            if notify:
+                sframe = inspect.currentframe()
+                sframe = sframe and sframe.f_back
+                self._notifier.handleRemoteException("Failed to call orm.%s/%s: %s", \
+                        model, method, e.args[0], exc_info=sys.exc_info(), frame_info=sframe)
+            raise
+        except Exception, e:
+            if notify:
+                self._notifier.handleException("Failed to call %s/%s", \
+                        model, method, exc_info=sys.exc_info())
+            raise
+        finally:
+            self.connections.free(conn)
+        return value
+
     def open(self, proto, **kwargs):
         """Open the session, login() to some server, doing trivial checks
         
