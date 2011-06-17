@@ -172,6 +172,8 @@ class RpcJsonConnection(TCPConnection):
                 if args:
                     req_struct['params'].update(dict(enumerate(args)))
             req_body = json.dumps(req_struct)
+            # makes it little more readable:
+            req_body += "\n"
             del req_struct
             host = '%s:%s' % (self.host, self.port)
             res = self._transport.request(host, url, req_body)
