@@ -373,7 +373,7 @@ class PersistentTransport(Transport):
         if conn._HTTPConnection__state == httplib._CS_REQ_STARTED:
             conn._HTTPConnection__state = httplib._CS_REQ_SENT
         else:
-            raise CannotSendHeader()
+            raise httplib.CannotSendHeader()
         conn._buffer.extend(("", ""))
         msg = "\r\n".join(conn._buffer)
         del conn._buffer[:]

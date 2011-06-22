@@ -191,7 +191,7 @@ class RpcJsonConnection(TCPConnection):
             if err.errno in errors.ENONET:
                 raise errors.RpcNetworkException(err.strerror, err.errno)
             self._log.error("socket error: %s" % err)
-            self._log.debug("call %s.%s(%r)", obj, method, args)
+            self._log.debug("call %s/%s(%r)", path, method, args)
             raise errors.RpcProtocolException( err )
         except httplib.InvalidURL, err:
             raise errors.RpcNoProtocolException(err.args[0])
@@ -207,8 +207,7 @@ class RpcJsonConnection(TCPConnection):
         except TypeError:
             # may come from marshalling, so it's useful to dump the arguments
             self._log.exception("Exception:")
-            if auth_level != 'login':
-                self._log.debug("Arguments: %r", args)
+            self._log.debug("Arguments: %r", args)
             raise
         except Exception:
             self._log.exception("Exception:")

@@ -23,7 +23,6 @@ from openerp_libclient.protocol_xmlrpc import PersistentAuthTransport, BasicAuth
 
 import re
 import logging
-import gzip
 
 #.apidoc title: log_client - Remote Logs client interface
 
@@ -32,6 +31,7 @@ try:
     __hush_pyflakes = [ StringIO ]
 except ImportError:
     from StringIO import StringIO
+    __hush_pyflakes = [ StringIO ]
 
 
 class RLogRecord(object):
