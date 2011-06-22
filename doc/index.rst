@@ -9,10 +9,9 @@ Welcome to OpenERP-libclient's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
-   
-   api
-   api-internal
+
+    openerp_libclient
+
 
 Indices and tables
 ==================

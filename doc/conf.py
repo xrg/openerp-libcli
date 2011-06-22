@@ -17,7 +17,7 @@ import sys, os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(1, os.path.abspath(os.path.join('..','openerp_libclient')))
+sys.path.insert(1, os.path.abspath(os.path.join('..')))
 
 # -- General configuration -----------------------------------------------------
 
@@ -220,6 +220,13 @@ man_pages = [
      [u'P. Christeas'], 1)
 ]
 
+# Autodoc options
+autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance']
+
+autodoc_member_order = 'groupwise'
+
+# Take both class docstring and __init__ one
+autoclass_content = 'both'
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}
