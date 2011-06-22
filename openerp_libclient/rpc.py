@@ -32,6 +32,7 @@
 import logging
 import session
 import protocols
+__hush_pyflakes = [ protocols, ]
 from errors import RpcProtocolException, RpcException
 
 #.apidoc title: rpc - Object-like RPC interface to server
@@ -40,44 +41,6 @@ from errors import RpcProtocolException, RpcException
 
 It is based on the older RPC proxy implementations of openerp-client and koo
 """
-
-class Database(object):
-    """The Database class handles queries that don't require a previous login, served by the db server object
-    """
-
-    def list(self, url):
-        """ Obtains the list of available databases from the given URL.
-        
-        None if there was an error trying to fetch the list.
-        """
-        try:
-            return self.call( url, 'list' )
-        except Exception,e:
-            logging.getLogger('RPC.Database').exception("db list exc:")
-            return -1
-
-    ## @brief Calls the specified method
-    # on the given object on the server. If there is an error
-    # during the call it simply rises an exception
-    def call(self, url, method, *args):
-        con = createConnection( url )
-        if method in [ 'db_exist', 'list', 'list_lang', 'server_version']:
-            authl = 'pub'
-        else:
-            authl = 'root'
-        return con.call( '/db', method, args, auth_level=authl)
-
-    ## @brief Same as call() but uses the notify mechanism to notify 
-    # exceptions.
-    def execute(self, url, method, *args):
-        res = False
-        try:
-            res = self.call(url, method, *args)
-        except socket.error, msg:
-            Notifier.notifyWarning('', _('Could not contact server!') )
-        return res
-
-database = Database()
 
 default_session = None
 
