@@ -31,6 +31,8 @@ import errors
 from interface import TCPConnection
 import httplib
 
+#.apidoc title: protocol_xmlrpc - XML-RPC v1 and v2 client
+
 try:
     from cStringIO import StringIO
     __hush_pyflakes = [ StringIO ]

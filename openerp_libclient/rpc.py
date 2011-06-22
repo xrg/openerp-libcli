@@ -34,6 +34,8 @@ import session
 import protocols
 from errors import RpcProtocolException, RpcException
 
+#.apidoc title: rpc - Object-like RPC interface to server
+
 """ RPC module provides convenience classes, that give direct access to OpenERP objects
 
 It is based on the older RPC proxy implementations of openerp-client and koo

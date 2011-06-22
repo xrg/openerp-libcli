@@ -25,6 +25,8 @@ import re
 import logging
 import gzip
 
+#.apidoc title: log_client - Remote Logs client interface
+
 try:
     from cStringIO import StringIO
     __hush_pyflakes = [ StringIO ]

@@ -25,6 +25,7 @@
 #
 ##############################################################################
 
+#.apidoc skip: True
 
 ## @brief The Session class provides a simple way of login and executing function in a server
 

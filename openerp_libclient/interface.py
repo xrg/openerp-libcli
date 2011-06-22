@@ -27,6 +27,8 @@ from dict_tools import dict_filter
 from errors import RpcProtocolException, RpcServerException, RpcNetworkException
 import traceback
 
+#.apidoc title: interface - Base abstract classes
+
 """This module provides the essential interface classes
 """
 
@@ -90,7 +92,7 @@ class Connection(object):
         """ Perform an RPC call on path/method
 
             @param auth_level indicates which set of authenticators to
-            use from the proxy. Can be 'pub', 'db' or 'root' so far.
+                use from the proxy. Can be 'pub', 'db' or 'root' so far.
         """
         raise NotImplementedError()
 
@@ -127,10 +129,10 @@ class Connection(object):
     def maybeUpgrade(self, kwargs):
         """ Called on a session that already has a connection
             @return True if we shall replace previous connections, False if we
-                    have nothing better to do.
+                have nothing better to do.
 
             @note This may want to peek at the session.server_options or version
-            to determine if we need to upgrade
+                to determine if we need to upgrade
         """
         return False
 
@@ -240,8 +242,10 @@ class RPCNotifier(object):
 
     def handleWarning(self, msg, *args, **kwargs):
         """ Issue a warning to user.
-        Some properties can be specified in kwargs, sugh as:
-            auto_close: display in an asynchronous way and return immediately to caller.
+        
+            Some properties can be specified in kwargs, sugh as:
+            
+                auto_close: display in an asynchronous way and return immediately to caller.
         """
         self.logger.warning(msg, *args)
 

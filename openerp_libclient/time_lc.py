@@ -8,6 +8,8 @@ import _strptime as _strptime_module
 from datetime import date as datetime_date
 import re
 
+#.apidoc skip: True
+
 '''
 TODO:
 asctime() -- convert time tuple to string

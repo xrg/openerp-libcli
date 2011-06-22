@@ -23,6 +23,7 @@
 
 import errno
 
+#.apidoc title: errors - Common Exceptions for RPC layer
 ENONET = (errno.ECONNREFUSED, errno.ECONNRESET, errno.ECONNABORTED, errno.ENOENT)
 class RpcException(Exception):
     """ Generic exception of the RPC layer

@@ -27,6 +27,8 @@ from interface import Connection, RPCNotifier
 import logging
 import sys
 
+#.apidoc title: session - Connection to server
+
 """ A session is a (virtual) connection to an OpenERP server. 
 
     It may use multiple TCP sockets (connections), but all share the same

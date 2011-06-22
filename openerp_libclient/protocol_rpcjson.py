@@ -19,8 +19,9 @@
 #
 ##############################################################################
 
-""" RPC-JSON protocol client implementation
+#.apidoc title: protocol_rpcjson - RPC-JSON protocol client implementation
 
+"""
     This protocol is based on JSON-RPC (note the inverse name), but also with
     RESTful extensions and HTTP authentication.
 

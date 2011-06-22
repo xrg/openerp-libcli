@@ -32,16 +32,19 @@
 from threading import Condition
 import time
 
+#.apidoc title: utils - Utility classes
+
 class Pool(object):
     """ A pool of resources, which can be requested one at-a-time
     """
     
     def __init__(self, iter_constr, check_fn=None):
         """ Init the pool
+        
             @param iter_constr is an iterable, that can construct a new
                 resource in the pool. It will be called lazily, when more
                 resources are needed
-            @param check_fn  A callable to use before borrow or after free,
+            @param check_fn A callable to use before borrow or after free,
                 which will let discard "bad" resources. If check_fn(res)
                 returns False, res will be removed from our lists.
         """

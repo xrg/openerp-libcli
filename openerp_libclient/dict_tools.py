@@ -17,6 +17,8 @@
 ###############################################################################
 
 
+#.apidoc title: dict_tools - Helpers for dict() manipulations
+
 def dict_merge(*dicts):
     """ Return a dict with all values of dicts
     """
