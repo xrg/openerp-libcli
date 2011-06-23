@@ -34,7 +34,6 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 apistruct:
-	echo $(PWD)
 	../../doc/gen_apiref.py -o $(PWD) -m openerp_libclient ../
 
 clean:
