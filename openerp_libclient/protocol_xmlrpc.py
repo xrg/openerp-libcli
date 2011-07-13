@@ -505,8 +505,14 @@ class addAuthTransport:
                 h.putheader('Authorization', auths)
             self.send_content(h, request_body)
 
-            resp = h._conn.getresponse()
-            #  except BadStatusLine, e:
+            try:
+                resp = h._conn.getresponse()
+            except httplib.BadStatusLine, e:
+                if e.line and e.line != "''": # BadStatusLine does a repr(line)
+                    # something else, not a broken connection
+                    raise
+                if h: h.close()
+                continue
 
             if resp.status == 401:
                 if 'www-authenticate' in resp.msg:
