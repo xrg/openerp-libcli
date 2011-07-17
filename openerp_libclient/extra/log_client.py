@@ -19,7 +19,8 @@
 #
 ##############################################################################
 
-from openerp_libclient.protocol_xmlrpc import PersistentAuthTransport, BasicAuthClient, ProtocolError
+from openerp_libclient.protocol_xmlrpc import PersistentAuthTransport, \
+        SafePersistentAuthTransport, BasicAuthClient, ProtocolError
 
 import re
 import logging
@@ -104,13 +105,13 @@ class RemoteLogHandler(object):
     def handle(self, rec):
         raise NotImplementedError
 
-class RemoteLogTransport(PersistentAuthTransport):
+
+class _logTransportMixin(object):
     """ Reuse the RPC code for plain HTTP requests
     """
     batch_limit = 50    # max messages to fetch in one request
 
     def __init__(self, host, port, handler):
-        PersistentAuthTransport.__init__(self)
         assert getattr(handler, 'handle', False)
         self.log_handler = handler
         self.log_offset = None
@@ -128,7 +129,7 @@ class RemoteLogTransport(PersistentAuthTransport):
         """
         if 'X-Log-LastPos' in response.msg:
             self.log_offset = int(response.msg.get('X-Log-LastPos'))
-        return PersistentAuthTransport._parse_response(self, response)
+        return super(_logTransportMixin, self)._parse_response(response)
 
     def process_next_logs(self):
         """Wait (blocking) and process next batch of log records
@@ -148,6 +149,15 @@ class RemoteLogTransport(PersistentAuthTransport):
             else:
                 raise
 
+class RemoteLogTransport(_logTransportMixin, PersistentAuthTransport):
+    def __init__(self, host, port, handler):
+        PersistentAuthTransport.__init__(self)
+        _logTransportMixin.__init__(self, host, port, handler)
+
+class SafeRemoteLogTransport(_logTransportMixin, SafePersistentAuthTransport):
+    def __init__(self, host, port, handler):
+        SafePersistentAuthTransport.__init__(self)
+        _logTransportMixin.__init__(self, host, port, handler)
 
 def getTransportFromDSN(dsn, handler):
     """Prepares a remote log transport instance, from DSN parameters
@@ -157,6 +167,8 @@ def getTransportFromDSN(dsn, handler):
     """
     if dsn['proto'] == 'http':
         t = RemoteLogTransport(host=dsn['host'], port=dsn['port'], handler=handler)
+    elif dsn['proto'] == 'https':
+        t = SafeRemoteLogTransport(host=dsn['host'], port=dsn['port'], handler=handler)
     else:
         raise ValueError("Cannot handle %s protocol for remote logs" % dsn['proto'])
 
