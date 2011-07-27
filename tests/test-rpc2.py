@@ -11,15 +11,9 @@ from openerp_libclient import rpc
 
 logging.basicConfig(level=logging.DEBUG)
 db_props = {}
-db_props['scheme'] = 'http'
-db_props['dbname'] = 'refdb'
-db_props['host'] = 'localhost'
-db_props['port'] = 8069
-db_props['username'] = 'admin'
-db_props['password'] = 'admin'
 
-rpc.openSession(proto="socket", host='localhost', port='8070', 
-    user="admin", passwd="admin", dbname="refdb")
+rpc.openSession(proto="http", host='localhost', port='8169', 
+    user="admin", passwd="admin", dbname="test_bqi")
 r = rpc.login()
 if not r :
     raise Exception("Could not login! %r" % r)
