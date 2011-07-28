@@ -37,6 +37,16 @@ import threading
 
 import os, sys
 
+class CommandFailureException(Exception):
+    def __init__(self, msg, error, code=100):
+        """ A custom failure exception (recoverable)
+        
+            @param msg A short message (title) of the exception, like "Error!"
+            @param error A text description, like "The spam has failed to be hamed"
+        """
+        self.args = (msg, error)
+        self.code = code
+
 class CommandsThread(subscriptions.SubscriptionThread):
     """ A commands thread, waiting for the server to issue a command
     """
@@ -134,6 +144,8 @@ class CommandsThread(subscriptions.SubscriptionThread):
 
         try:
             result = fn(*(res['args']), **(res['kwargs']))
+        except CommandFailureException, e:
+            self._cmds_obj.push_error(res['id'], {'code': e.code, 'message': e.args[0], 'error': e.args[1]})
         except Exception, e:
             # FIXME! message, error formulating
             print "Exception:", e
