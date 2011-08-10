@@ -129,7 +129,7 @@ class CommandsThread(subscriptions.SubscriptionThread):
             @return True if commands were found, False if queue empty
         """
 
-        print "poll commands!"
+        self._logger.debug("poll commands!")
         res = self._cmds_obj.pop_command(address_name=self._address,
                 agent_name=self._agent_name, agent_incarnation=self._agent_incarnation)
         # print "Command:", res
@@ -145,11 +145,23 @@ class CommandsThread(subscriptions.SubscriptionThread):
         try:
             result = fn(*(res['args']), **(res['kwargs']))
         except CommandFailureException, e:
-            self._cmds_obj.push_error(res['id'], {'code': e.code, 'message': e.args[0], 'error': e.args[1]})
+            self._cmds_obj.push_exception(res['id'], {'code': e.code, 'message': e.args[0], 'error': e.args[1]})
+        except errors.RpcException:
+            # this will happen id fn() contains forward-RPC calls to the server,
+            # and these fail.
+            self._logger.error("RPC Exception: %s", e)
+            try:
+                # the RPC layer may already be borken
+                self._cmds_obj.push_exception(res['id'], {'code': e.code, 'message': e.args[0], 'error': e.args[1]})
+            except Exception:
+                pass
+            return False
         except Exception, e:
-            # FIXME! message, error formulating
-            print "Exception:", e
-            self._cmds_obj.push_error(res['id'], {'code': 100, 'message': str(e), 'error': e.args[0]})
+            self._logger.error("Exception: %s", e)
+            try:
+                self._cmds_obj.push_exception(res['id'], {'code': 100, 'message': str(e), 'error': e.args[0]})
+            except Exception:
+                self._logger.exception("Could not even push exception to cmd #%d!", res['id'])
         else:
             self._cmds_obj.push_result(res['id'], result)
 
