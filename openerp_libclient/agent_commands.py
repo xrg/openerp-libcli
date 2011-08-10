@@ -146,13 +146,14 @@ class CommandsThread(subscriptions.SubscriptionThread):
             result = fn(*(res['args']), **(res['kwargs']))
         except CommandFailureException, e:
             self._cmds_obj.push_exception(res['id'], {'code': e.code, 'message': e.args[0], 'error': e.args[1]})
-        except errors.RpcException:
+        except errors.RpcException, e:
             # this will happen id fn() contains forward-RPC calls to the server,
             # and these fail.
             self._logger.error("RPC Exception: %s", e)
             try:
                 # the RPC layer may already be borken
-                self._cmds_obj.push_exception(res['id'], {'code': e.code, 'message': e.args[0], 'error': e.args[1]})
+                exc_kwargs = {'code': e.code or 100, 'message': e.args[0], 'error': ''}
+                self._cmds_obj.push_exception(res['id'], exc_kwargs)
             except Exception:
                 pass
             return False
