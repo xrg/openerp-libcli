@@ -7,7 +7,7 @@ import logging
 import time
 logging.basicConfig(level=logging.DEBUG)
 
-from openerp_libclient import rpc, agent_commands
+from openerp_libclient import rpc, agent_commands, errors
 
 rpc.openSession(proto="http", host='localhost', port='8169', 
     user="admin", passwd="admin", dbname="test_bqi")
@@ -35,6 +35,10 @@ class parrot(object):
                     args_str += ','
                 args_str += ','.join([ '%s=%r' % (k, v) for k, v in kwargs.items()])
             print "called: %s(%s)" % (self._method, args_str)
+            if 'exception' in kwargs:
+                raise Exception(kwargs['exception'])
+            elif 'rpc_exception' in kwargs:
+                raise rpc.RpcException(kwargs['rpc_exception'])
             return True
     
     def __getattr__(self, name):
