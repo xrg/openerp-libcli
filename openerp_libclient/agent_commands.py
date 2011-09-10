@@ -156,7 +156,6 @@ class CommandsThread(subscriptions.SubscriptionThread):
                 self._cmds_obj.push_exception(res['id'], exc_kwargs)
             except Exception:
                 pass
-            return False
         except Exception, e:
             self._logger.error("Exception: %s", e)
             try:
