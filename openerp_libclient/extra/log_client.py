@@ -24,6 +24,8 @@ from openerp_libclient.protocol_xmlrpc import PersistentAuthTransport, \
 
 import re
 import logging
+import time
+import socket
 
 #.apidoc title: log_client - Remote Logs client interface
 
@@ -116,6 +118,7 @@ class _logTransportMixin(object):
         self.log_handler = handler
         self.log_offset = None
         self.hostport = '%s:%s' % (host, port)
+        self.sock_errors = 0
 
     def getparser(self):
         p = u = MachineLogParser(self.log_handler)
@@ -143,6 +146,19 @@ class _logTransportMixin(object):
             parms += '&offset=%d' % self.log_offset
         try:
             self.request(self.hostport, parms, None, verbose=False)
+            self.sock_errors = 0
+        except socket.error, err:
+            # an error in the TCP layer. May be transient
+            self._log.error("socket error: %s" % err)
+            self.sock_errors += 1
+            if self.sock_errors < 3:
+                # wait before trying again
+                time.sleep(1.0)
+            elif self.sock_errors < 10:
+                time.sleep(5.0)
+            else:
+                self.sock_errors = 0
+                raise
         except ProtocolError, err:
             if err.errcode == 204:
                 pass
