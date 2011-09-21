@@ -88,11 +88,10 @@ class Session(object):
     def __init__(self, notifier=None):
         self.state = False # = not ready
         self.conn_args = {} # as in host:port
-        #self.password = None
         self.context = {}
         self.__conn_klass = None
+        self.conn_url = None  #: only for display purposes
         self.auth_proxy = None
-        # self.allow_xmlrpc2 = True
         self.threads = []
         self.server_version = (None, )
         self.server_options = []
@@ -240,6 +239,10 @@ class Session(object):
 
 
     def login(self):
+        """ execute the remote login() call, enable session to perform authenticated requests
+        
+            @return the uid of the connected user
+        """
         if not self.state:
             self._notifier.handleError("Not connected")
             raise RpcException('Not connnected')
@@ -253,7 +256,8 @@ class Session(object):
                 assert isinstance(res, int)
                 self.state = 'login'
                 self.auth_proxy.uid = res
-                self._log.info("Logged in to %s", conn.prettyUrl())
+                self.conn_url = conn.prettyUrl()
+                self._log.info("Logged in to %s", self.conn_url )
             self.context = conn.call('/object', 'execute', ('res.users', 'context_get'), auth_level='db') or {}
             return res
         except Exception:
@@ -283,21 +287,9 @@ class Session(object):
         """Logs out of the server. """
         self.state = None
         self.auth_proxy = None
+        self.conn_url = None
         self.connections.clear()
 
-    #def copy(self):
-        #new = Session()
-        #new.open = self.open
-        #new.url = self.url
-        ## new.password = self.password
-        #new.uid = self.uid
-        #new.context = self.context
-        #new.userName = self.userName
-        #new.databaseName = self.databaseName
-        #new.allow_xmlrpc2 = self.allow_xmlrpc2
-        #new.server_options = self.server_options
-        #return new
-        
     def loop_once(self):
         """Perform any background operations, single-shot
         
@@ -310,6 +302,25 @@ class Session(object):
         """
         # TODO
         return False
+
+    def get_uid(self):
+        """ Get the authenticated user-id (from auth proxy)
+        """
+        if not self.auth_proxy:
+            raise RpcException("Not logged in!")
+        return self.auth_proxy.uid
+
+    def get_dbname(self):
+        """ Get the active database name (from auth proxy)
+        """
+        if not self.auth_proxy:
+            raise RpcException("Not authenticated or opened!")
+        return self.auth_proxy.dbname
+        
+    def get_url(self):
+        """ Try to retrieve the connection url
+        """
+        return self.conn_url
 
 class FilterNotifier(RPCNotifier):
     """ A notifier that passes each message through a filter
