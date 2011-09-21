@@ -160,7 +160,7 @@ class RpcJsonConnection(TCPConnection):
             url = '/json/' + '/'.join(map(str, path))
             req_id = str(self._req_counter)
             self._req_counter += 1
-            self._log.debug("path: %s", url)
+            # self._log.debug("path: %s", url)
             req_struct = { "version": "1.1",
                 "id": req_id,
                 "method": str(method),
