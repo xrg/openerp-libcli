@@ -63,9 +63,10 @@ class RpcProxy(object):
     For example:
     @code obj = RpcProxy('ir.values')
     """
-    def __init__(self, resource, session=None):
+    def __init__(self, resource, session=None, notify=True):
         global default_session
         self.resource = resource
+        self.notify = notify
         self.session = session or default_session
         self.__attrs = {}
 
@@ -86,7 +87,7 @@ class RpcFunction(object):
         self.func = func_name
 
     def __call__(self, *args, **kwargs):
-        return self.proxy.session.call_orm(self.proxy.resource, self.func, list(args), kwargs)
+        return self.proxy.session.call_orm(self.proxy.resource, self.func, list(args), kwargs, notify=self.proxy.notify)
 
 class RpcCustomProxy(object):
     """ A lower-level proxy, for custom RPC methods
