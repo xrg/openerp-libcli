@@ -33,6 +33,7 @@ import cPickle
 import sys
 from errors import RpcProtocolException, RpcServerException
 from dict_tools import dict_filter
+from tools import ustr
 
 from interface import TCPConnection
 import session
@@ -117,7 +118,7 @@ class SocketConnection(TCPConnection):
             s = mysocket()
             s.connect(self.host, self.port )
         except socket.error, err:
-            raise RpcProtocolException( unicode(err) )
+            raise RpcProtocolException( ustr(err.strerror) )
         try:
             # Remove leading slash (ie. '/object' -> 'object')
             obj = obj[1:]
@@ -135,10 +136,10 @@ class SocketConnection(TCPConnection):
             result = s.myreceive()
         except socket.error, err:
             # print err.strerror
-            raise RpcProtocolException( err.strerror )
+            raise RpcProtocolException( ustr(err.strerror) )
         except Myexception, err:
-            faultCode = unicode( err.faultCode, 'utf-8' )
-            faultString = unicode( err.faultString, 'utf-8' )
+            faultCode = ustr( err.faultCode)
+            faultString = ustr( err.faultString)
             raise RpcServerException( faultCode, faultString )
         finally:
             s.disconnect()
