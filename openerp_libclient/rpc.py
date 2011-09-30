@@ -48,7 +48,7 @@ def openSession(**kwargs):
     """ open a session as the default one
     """
     global default_session
-    default_session = session.Session()
+    default_session = session.Session(notifier=kwargs.pop('notifier',None))
     default_session.open(**kwargs)
 
 def login():
