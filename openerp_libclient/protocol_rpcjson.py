@@ -166,7 +166,7 @@ class RpcJsonConnection(TCPConnection):
                 "method": str(method),
                 }
 
-            if kwargs is None:
+            if not kwargs:
                 req_struct["params"] = list(args)
             else:
                 req_struct['params'] = kwargs.copy()
