@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 name = 'openerp_libclient'
-version = '0.0.1'
+version = '0.0.2'
 
 setup(
     name=name,
@@ -17,7 +17,7 @@ setup(
     author_email='xrg@openerp.com',
     url='http://git.hellug.gr/?p=xrg/openerp-libcli',
     download_url="http://git.hellug.gr/?p=xrg/openerp-libcli",
-    packages=['openerp_libclient'],
+    packages=['openerp_libclient', 'openerp_libclient.extra'],
     keywords=['xml-rpc', 'openerp', 'client', 'python',],
     classifiers=[
           'Development Status :: 1 - Experimental',
