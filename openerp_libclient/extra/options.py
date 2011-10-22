@@ -163,7 +163,7 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
 
     pgroup1.add_option("--log", dest="logfile", help="A file to write plain log to, or 'stderr'")
 
-    pgroup1.add_option("--password", dest="pwd", help="specify the User Password." \
+    pgroup1.add_option("--password", dest="passwd", help="specify the User Password." \
                         "Please don't use this, security risk.")
     pgroup1.add_option("-P", "--passwd-file", default=None, help="read the password from that file (safer)")
 
@@ -252,7 +252,9 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
             sys.exit(1)
 
     # Get the password
-    if opts.passwd_file:
+    if opts.passwd:
+        connect_dsn['passwd'] = opts.passwd
+    elif opts.passwd_file:
         try:
             fp = open(opts.passwd_file, 'rb')
             connect_dsn['passwd'] = fp.readline().strip()
