@@ -114,7 +114,7 @@ def _parse_url_dsn(url, connect_dsn):
     # path, params, fragment
 
 def init(usage=None, config=None, have_args=None, allow_askpass=True,
-        extra_options=None, defaults=None, config_section='general'):
+        options_prepare=None, defaults=None, config_section='general'):
     """
 
         @param usage a string describing the usage of the script
@@ -127,13 +127,28 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
             int means exactly that many arguments must be present
         @param allow_askpass ask for a password at the standard console,
             if no password is specified at url or config file
-        @param extra_options an optparse.OptionGroup of extra options this
-            script can take
+        @param options_prepare a callable that will add any initial options
+            to the OptionParser
         @param defaults defaults, fallback for standard options
+
+        Example of options_prepare::
+
+            def custom_options(parser):
+                assert isinstance(parser, optparse.OptionParser)
+
+                pgroup = optparse.OptionGroup(parser, "My options")
+                pgroup.add_option('--foo')
+                parser.add_option_group(pgroup)
+
+            ...
+            options.init(..., options_prepare=custom_options)
     """
     global connect_dsn, log_section
     global opts, args
     parser = optparse.OptionParser(usage or "%prog [options]\n")
+
+    if options_prepare:
+        options_prepare(parser)
 
     pgroup1 = optparse.OptionGroup(parser, 'Standard Client Options',
                     "These options define the connection parameters "
@@ -167,8 +182,6 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
     pgroup2.add_option("--no-config", dest="have_config", action="store_false", default=True,
                 help="Do not read the default config file, start with empty options.")
 
-    if extra_options:
-        parser.add_option_group(extra_options)
     parser.add_option_group(pgroup1)
     parser.add_option_group(pgroup2)
 
