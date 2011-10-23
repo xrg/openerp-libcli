@@ -52,9 +52,9 @@ connect_dsn = {'proto': 'http', 'user': 'admin', 'host': 'localhost', 'port': 80
 
 log_section = 'libcli.options'
 
-_non_options = ('configfile', 'have_config', 'include')
+_non_options = ['configfile', 'have_config', 'include']
 _list_options = {} #: Options that must be parsed as a list. optname: key pairs
-_path_options = ('homedir', 'logfile',) #: options that must be path-expanded
+_path_options = ['homedir', 'logfile',] #: options that must be path-expanded
 
 def _parse_option_section(conf, items, copt, opt, _allow_include=0):
     """ Parse a .conf file section into `opt`
@@ -81,8 +81,6 @@ def _parse_option_section(conf, items, copt, opt, _allow_include=0):
                 val = val.split(' ')
             elif isinstance(getattr(copt, key), bool):
                 val = bool(val.lower() in ('1', 'true', 't', 'yes'))
-            elif key in _path_options:
-                val = os.path.expanduser(val)
 
             if not getattr(copt, key):
                 setattr(opt, key, val)
@@ -217,6 +215,11 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
             if not getattr(opts, key):
                 setattr(opts, key, val)
 
+    # Expand any path options
+    for key in _path_options:
+        if getattr(opts, key, None):
+            setattr(opts, key, os.path.expanduser(getattr(opts, key)))
+
     # Then, analyze the URL
     if opts.url:
         _parse_url_dsn(opts.url, connect_dsn)
@@ -252,7 +255,11 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
             sys.exit(1)
 
     # Get the password
-    if opts.passwd:
+    if opts.ask_passwd:
+        import getpass
+        connect_dsn['passwd'] = getpass.getpass("Enter the password for %s@%s: " % \
+            (connect_dsn['user'], connect_dsn['dbname']))
+    elif opts.passwd:
         connect_dsn['passwd'] = opts.passwd
     elif opts.passwd_file:
         try:
@@ -263,9 +270,5 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
             _logger.debug("Password read from file")
         except Exception, e:
             _logger.warning("Password file could not be read: %s", e)
-    elif not connect_dsn.get('passwd'):
-        import getpass
-        connect_dsn['passwd'] = getpass.getpass("Enter the password for %s@%s: " % \
-            (connect_dsn['user'], connect_dsn['dbname']))
 
 #eof
