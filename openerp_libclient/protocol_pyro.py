@@ -23,6 +23,8 @@
 
 
 import Pyro.core
+from interface import Connection
+from errors import RpcProtocolException, RpcServerException
 
 ## @brief The PyroConnection class implements Connection for the Pyro RPC protocol.
 #

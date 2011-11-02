@@ -119,7 +119,7 @@ class CommandsThread(subscriptions.SubscriptionThread):
             except errors.RpcNetworkException:
                 self._logger.exception("RPC Network:")
                 time.sleep(self.network_retry_delay)
-            except Exception, e:
+            except Exception:
                 self._logger.exception("Error")
                 time.sleep(self.error_retry_delay)
 

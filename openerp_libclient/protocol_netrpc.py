@@ -32,7 +32,6 @@ import socket
 import cPickle
 import sys
 from errors import RpcProtocolException, RpcServerException
-from dict_tools import dict_filter
 from tools import ustr
 
 from interface import TCPConnection
