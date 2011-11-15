@@ -22,26 +22,26 @@
 
 #.apidoc title: Standardized Options+Config parser for client scripts
 
-from ConfigParser import SafeConfigParser, NoSectionError
-import optparse
-import sys, os
-import logging
-import re
-
 """ Since most of the client scripts may need the same set of parameters,
     put them all in this common configuration utility
 
     Usage::
 
-    import logging
-    from openerp_libclient.extra import options
+        import logging
+        from openerp_libclient.extra import options
 
-    options.init(...)
+        options.init(...)
 
-    logging.getLogger('ham').info('spam!')
-    for filename in options.args():
-        spam(filename)
+        logging.getLogger('ham').info('spam!')
+        for filename in options.args():
+            spam(filename)
 """
+
+from ConfigParser import SafeConfigParser, NoSectionError
+import optparse
+import sys, os
+import logging
+import re
 
 opts = args = None
 config_stray_opts = []
