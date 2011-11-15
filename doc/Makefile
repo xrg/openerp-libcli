@@ -7,6 +7,9 @@ SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = _build
 
+APIDOC_DIR = $(abspath ../../apidoc)
+export APIDOC_LIBDIR = $(APIDOC_DIR)/lib
+
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
@@ -34,7 +37,7 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 apistruct:
-	../../doc/gen_apiref.py -o $(PWD) -m openerp_libclient ../
+	$(APIDOC_DIR)/lib/gen_apiref.py -o $(PWD) -m openerp_libclient ../
 
 clean:
 	-rm -rf $(BUILDDIR)/*
