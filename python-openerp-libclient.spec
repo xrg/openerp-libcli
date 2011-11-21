@@ -2,6 +2,9 @@
 
 #define distsuffix xrg
 
+%{?!py_requires: %global py_requires(d) BuildRequires: python}
+%{?!py_sitedir: %global py_sitedir %(python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_lib()' 2>/dev/null || echo PYTHON-LIBDIR-NOT-FOUND)}
+
 Name:		python-openerp-libclient
 Summary:	Client Library for the OpenERP protocol
 Version:	%git_get_ver
