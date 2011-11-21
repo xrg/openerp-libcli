@@ -140,6 +140,9 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
 
             ...
             options.init(..., options_prepare=custom_options)
+
+            if options.opts.foo:
+                do_foo()
     """
     global connect_dsn, log_section
     global opts, args
