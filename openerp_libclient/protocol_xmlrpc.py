@@ -27,11 +27,15 @@ import gzip
 import errno
 import socket
 from xmlrpclib import Transport,ProtocolError, ServerProxy, Fault
+import xmlrpclib
 import errors
 from interface import TCPConnection
 import httplib
 
 #.apidoc title: protocol_xmlrpc - XML-RPC v1 and v2 client
+
+from types import Binary
+xmlrpclib.WRAPPERS = xmlrpclib.WRAPPERS + (Binary,)
 
 try:
     from cStringIO import StringIO

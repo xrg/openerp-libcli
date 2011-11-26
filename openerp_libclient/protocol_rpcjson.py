@@ -31,6 +31,7 @@ import gzip
 # import errno
 import socket
 import json
+import json_helpers
 
 from xmlrpclib import ProtocolError
 import errors
@@ -78,7 +79,7 @@ class JSON_add_transport:
             rbuffer = respdata
 
         try:
-            return json.load(rbuffer)
+            return json.load(rbuffer, object_hook=json_helpers.json_hook)
         except Exception, e:
             raise errors.RpcProtocolException(unicode(e))
 
@@ -172,7 +173,7 @@ class RpcJsonConnection(TCPConnection):
                 req_struct['params'] = kwargs.copy()
                 if args:
                     req_struct['params'].update(dict(enumerate(args)))
-            req_body = json.dumps(req_struct)
+            req_body = json.dumps(req_struct, cls=json_helpers.JsonEncoder2)
             # makes it little more readable:
             req_body += "\n"
             del req_struct
