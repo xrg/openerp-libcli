@@ -202,6 +202,10 @@ class Session(object):
         for pklass in self.proto_handlers:
             if pklass.codename != proto:
                 continue
+            if 'allowed_handlers' in kwargs \
+                    and pklass.name not in kwargs['allowed_handlers']:
+                self._log.debug("Skipping %s handler for %s", pklass.name, proto)
+                continue
             try:
                 conn = pklass(self)
                 if self.state == 'open':
