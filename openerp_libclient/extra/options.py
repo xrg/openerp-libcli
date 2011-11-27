@@ -52,7 +52,7 @@ connect_dsn = {'proto': 'http', 'user': 'admin', 'host': 'localhost', 'port': 80
 
 log_section = 'libcli.options'
 
-_non_options = ['configfile', 'have_config', 'include']
+_non_options = ['configfile', 'config_section', 'have_config', 'include']
 _list_options = {} #: Options that must be parsed as a list. optname: key pairs
 _path_options = ['homedir', 'logfile',] #: options that must be path-expanded
 
@@ -68,7 +68,7 @@ def _parse_option_section(conf, items, copt, opt, _allow_include=0):
     global config_stray_opts, _non_options, _list_options, _path_options
 
     for key, val in items:
-        if key == 'include' and allow_include:
+        if key == 'include' and _allow_include:
             for inc in val.split(' '):
                 _parse_option_section(conf, conf.items(inc), copt, opt, _allow_include=(_allow_include-1))
 
@@ -128,6 +128,9 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
         @param options_prepare a callable that will add any initial options
             to the OptionParser
         @param defaults defaults, fallback for standard options
+        @param config_section The config section to use from the file, *or*
+            tuple with arguments to ask the section from. If empty tuple '()'
+            is given, defaults to ('-s', '--config-section')
 
         Example of options_prepare::
 
@@ -183,6 +186,14 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
     pgroup2.add_option("--no-config", dest="have_config", action="store_false", default=True,
                 help="Do not read the default config file, start with empty options.")
 
+    if isinstance(config_section, tuple):
+        kwcfs = dict(dest="config_section", default="general",
+                help="Use that section in the config file")
+        if not config_section:
+            config_section = ('-s', '--config-section')
+        pgroup2.add_option(*config_section, **kwcfs)
+        del kwcfs
+
     parser.add_option_group(pgroup1)
     parser.add_option_group(pgroup2)
 
@@ -190,6 +201,9 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
 
     # Now, parse the config files, if any:
     opts = optparse.Values(copt.__dict__)
+
+    if isinstance(config_section, tuple):
+        config_section = copt.config_section
 
     conf_read = False
     if copt.have_config:
