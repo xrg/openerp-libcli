@@ -190,7 +190,8 @@ def getTransportFromDSN(dsn, handler):
 
     ba = BasicAuthClient()
     t.setAuthClient(ba)
-    ba.addLogin('OpenERP Admin', 'root', dsn['superpass'])
+    if dsn.get('superpass', False):
+        ba.addLogin('OpenERP Admin', 'root', dsn['superpass'])
 
     return t
 
