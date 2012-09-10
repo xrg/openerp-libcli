@@ -59,7 +59,7 @@ def login():
 
 class RpcProxy(object):
     """ The RpcProxy class allows wrapping a server object only by giving it's name.
-    
+
     For example:
     @code obj = RpcProxy('ir.values')
     """
@@ -74,11 +74,11 @@ class RpcProxy(object):
         if not name in self.__attrs:
             self.__attrs[name] = RpcFunction(self, name)
         return self.__attrs[name]
-    
+
 
 class RpcFunction(object):
     """ emulate a server-side method call
-    
+
         These objects are initialized through RpcProxy. You'd never need to
         initialize them explicitly.
     """
@@ -92,7 +92,7 @@ class RpcFunction(object):
 class RpcCustomProxy(object):
     """ A lower-level proxy, for custom RPC methods
     """
-    
+
     def __init__(self, path, session=None, auth_level='pub', notify=True):
         global default_session
         self.path = path

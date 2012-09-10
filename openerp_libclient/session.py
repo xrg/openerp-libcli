@@ -29,7 +29,7 @@ import sys
 
 #.apidoc title: session - Connection to server
 
-""" A session is a (virtual) connection to an OpenERP server. 
+""" A session is a (virtual) connection to an OpenERP server.
 
     It may use multiple TCP sockets (connections), but all share the same
     credentials, behave like a single communication trunk (multi-threaded)
@@ -42,7 +42,7 @@ class AbstractAuthProxy(object):
     def __init__(self, conn_params):
         self.uid = None
         self.dbname = conn_params.get('dbname', None)
-    
+
 class PasswdAuth(AbstractAuthProxy):
     """ Password authentication source
     """
@@ -56,7 +56,7 @@ class PasswdAuth(AbstractAuthProxy):
 
 class Session(object):
     """ Main class for OpenERP connectivity
-    
+
         Specifies a server, port, dbname
         TODO: doc
     """
@@ -71,7 +71,7 @@ class Session(object):
     """
     auth_handlers = [ PasswdAuth, ]
     """ a list of handlers for authentication."""
-    
+
     def __create_connection_int(self):
         assert self.__conn_klass, "Cannot create session connections before login"
         if len(self.connections) >= self.session_limit:
@@ -134,12 +134,12 @@ class Session(object):
 
     def call_orm(self, model, method, args, kwargs, notify=True):
         """ variant of call(), focused on ORM object calls
-        
+
             Since we end up calling object.execute(method, [params]) most of the
             time, it is worth to have a simplified calling path for that operation.
             With newer protocols, like RPC-JSON, this can be optimized in the
             communications channel, too.
-            
+
             @param model the ORM model
             @param method the method, like read, search, write etc.
             @param args positional arguments
@@ -171,18 +171,18 @@ class Session(object):
 
     def open(self, proto, **kwargs):
         """Open the session, login() to some server, doing trivial checks
-        
+
             @param proto The protocol, like "socket", "http" etc.
             @param kwargs all rest arguments to the protocol are optional, so
                     put them in a dict. Some part of the dict will be used by
                     the authentication proxy, some by the connection(s)
-                    If an 'auth' argument is passed, it will force authentication 
+                    If an 'auth' argument is passed, it will force authentication
                     scheme.
         """
-        
+
         if self.state:
             raise RuntimeError("Session already open()ed, please create a new one!")
-        
+
         # first, create an auth proxy
         auth_kwd = kwargs.get('auth', False)
         for klass in self.auth_handlers:
@@ -197,7 +197,7 @@ class Session(object):
         else:
             raise ValueError("Cannot use authentication of %s type!" % (auth_kwd or 'any'))
         self.auth_proxy = nah
-        
+
         # Then, try to establish one connection, check server and save.
         for pklass in self.proto_handlers:
             if pklass.codename != proto:
@@ -244,7 +244,7 @@ class Session(object):
 
     def login(self):
         """ execute the remote login() call, enable session to perform authenticated requests
-        
+
             @return the uid of the connected user
         """
         if not self.state:
@@ -273,7 +273,7 @@ class Session(object):
 
     def reloadContext(self):
         """Reloads the session context
-        
+
             Useful when some user parameters such as language are changed
         """
         conn = self.connections.borrow(self.conn_timeout)
@@ -296,12 +296,12 @@ class Session(object):
 
     def loop_once(self):
         """Perform any background operations, single-shot
-        
+
         Call this function at regular intervals.
         For example, it may cleanup unused connections.
         @return True: call me back now, False: don't call again,
                 or float: next time() it shall be called
-        
+
         This function may block for short periods (rfc?)
         """
         # TODO
@@ -320,7 +320,7 @@ class Session(object):
         if not self.auth_proxy:
             raise RpcException("Not authenticated or opened!")
         return self.auth_proxy.dbname
-        
+
     def get_url(self):
         """ Try to retrieve the connection url
         """
@@ -328,13 +328,13 @@ class Session(object):
 
 class FilterNotifier(RPCNotifier):
     """ A notifier that passes each message through a filter
-    
+
         self._filter_fn is a function that takes the notification
         message and returns another string. If it returns empty, no
         notification will happen.
     """
     _filter_fn = lambda a: a
-    
+
     def handleException(self, msg, *args, **kwargs):
         msg = self._filter_fn(msg)
         if not msg:
