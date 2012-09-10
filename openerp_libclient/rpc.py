@@ -48,8 +48,18 @@ def openSession(**kwargs):
     """ open a session as the default one
     """
     global default_session
+    conn_expire = kwargs.pop('conn_expire',None)
     default_session = session.Session(notifier=kwargs.pop('notifier',None))
+    if conn_expire:
+        from extra.loopthread import LoopThread
+        if conn_expire is True:
+            conn_expire = default_session.conn_expire
+        t = LoopThread(period=conn_expire, target=default_session.loop_once)
+    else:
+        t = None
     default_session.open(**kwargs)
+    if t:
+        t.start()
 
 def login():
     """ Login the default session

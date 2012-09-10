@@ -26,6 +26,7 @@ from errors import RpcException, RpcNetworkException, RpcProtocolException, RpcN
 from interface import Connection, RPCNotifier
 import logging
 import sys
+import time
 
 #.apidoc title: session - Connection to server
 
@@ -58,14 +59,30 @@ class Session(object):
     """ Main class for OpenERP connectivity
 
         Specifies a server, port, dbname
-        TODO: doc
+
+        A session represents a "trunk" of connections to a single server+db.
+        By "trunk", we mean that the number of required connections is
+        adjusted dynamically, based on calls to `session.call()` etc. It
+        behaves transparently like an always-available connection.
+
+        Note: you have to provide your own loop of expiring the used
+        connections. Reason is, your application's loop may not be compatible
+        with `threading.Thread`, so we don't hard-code such a system.
+        Still, the easiest implementation is that you write:
+            from openerp_libclient.extra import loopthread
+
+            # assuming:
+            mysess = Session(...)
+
+            expirer = loopthread.LoopThread(mysess.conn_expire, mysess.loop_once)
+            expirer.start()
     """
     #LoggedIn = 0
     #Exception = 2
     #InvalidCredentials = 3
     session_limit = 30
     conn_timeout = 30.0 # limit of seconds to wait for a free connection
-    conn_expire = 600.0 # seconds after which a connection shall close
+    conn_expire = 60.0 # seconds after which a connection shall close
     proto_handlers = []
     """ A list of classes like [XmlRpcConnection, ...] that handle each protocol
     """
@@ -304,7 +321,9 @@ class Session(object):
 
         This function may block for short periods (rfc?)
         """
-        # TODO
+        if self.conn_expire:
+            self.connections.expire(self.conn_expire)
+            return time.time() + self.conn_expire
         return False
 
     def get_uid(self):

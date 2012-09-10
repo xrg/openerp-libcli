@@ -36,6 +36,9 @@ import time
 
 class Pool(object):
     """ A pool of resources, which can be requested one at-a-time
+
+        Since v0.3 the pool holds timestamps of *free* resources, so that
+        they can easily be discarded.
     """
 
     def __init__(self, iter_constr, check_fn=None):
@@ -48,7 +51,7 @@ class Pool(object):
                 which will let discard "bad" resources. If check_fn(res)
                 returns False, res will be removed from our lists.
         """
-        self.__free_ones = []
+        self.__free_ones = [] #: list of (resource, time) tuples
         self.__used_ones = []
         self.__lock = Condition()
         self.__iterc = iter_constr
@@ -63,7 +66,7 @@ class Pool(object):
         while(True):
             ret = None
             if len(self.__free_ones):
-                ret = self.__free_ones.pop()
+                ret, tstamp = self.__free_ones.pop()
                 if self.__check_fn is not None:
                     self.__lock.release()
                     if not self.__check_fn(ret):
@@ -128,7 +131,7 @@ class Pool(object):
             # with the lock released
             self.__lock.acquire()
         if res is not None:
-            self.__free_ones.append(res)
+            self.__free_ones.append((res, time.time()))
         self.__lock.notify_all()
         self.__lock.release()
 
@@ -136,9 +139,13 @@ class Pool(object):
         """ Register a foreign resource as a used one, in the pool.
         """
         self.__lock.acquire()
-        if (res in self.__used_ones) or (res in self.__free_ones):
+        if (res in self.__used_ones):
             self.__lock.release()
             raise RuntimeError("Resource already in pool")
+        for r, t in self.__free_ones:
+            if res == r:
+                self.__lock.release()
+                raise RuntimeError("Resource already in pool")
         self.__used_ones.append(res)
         self.__lock.release()
 
@@ -161,5 +168,20 @@ class Pool(object):
         self.__used_ones = []
         self.__lock.notify_all() # Let them retry
         self.__lock.release()
+
+    def expire(self, age=30.0):
+        """Forgets (deletes) resources that are older than `age` seconds
+
+            The age of a resource is measured as the time this has been
+            idle in the "free_ones" pool. It does not depend on the object
+            creation time or so.
+        """
+        self.__lock.acquire()
+        try:
+            if self.__free_ones:
+                alz = time.time() - age
+                self.__free_ones = filter(lambda rt: rt[1] > alz, self.__free_ones)
+        finally:
+            self.__lock.release()
 
 #eof
