@@ -3,7 +3,7 @@
 #
 # Copyright (c) 2004-2006 TINY SPRL. (http://tiny.be) All Rights Reserved.
 # Copyright (c) 2007-2010 Albert Cervera i Areny <albert@nan-tic.com>
-# Copyright (c) 2010 P. Christeas <p_christ@hol.gr>
+# Copyright (c) 2010,2012 P. Christeas <xrg@linux.gr>
 # Copyright (c) 2010 OpenERP (http://www.openerp.com )
 #
 # WARNING: This program as such is intended to be used by professional
@@ -37,10 +37,10 @@ import time
 class Pool(object):
     """ A pool of resources, which can be requested one at-a-time
     """
-    
+
     def __init__(self, iter_constr, check_fn=None):
         """ Init the pool
-        
+
             @param iter_constr is an iterable, that can construct a new
                 resource in the pool. It will be called lazily, when more
                 resources are needed
@@ -54,7 +54,7 @@ class Pool(object):
         self.__iterc = iter_constr
         assert self.__iterc
         self.__check_fn = check_fn
-        
+
     def borrow(self, blocking=False):
         """Return the next free member of the pool
         """
@@ -76,7 +76,7 @@ class Pool(object):
                 self.__used_ones.append(ret)
                 self.__lock.release()
                 return ret
-            
+
             # no free one, try to construct a new one
             try:
                 self.__lock.release()
@@ -111,7 +111,7 @@ class Pool(object):
             continue
 
         raise RuntimeError("Should never reach here")
-        
+
     def free(self, res):
         self.__lock.acquire()
         try:
@@ -161,3 +161,5 @@ class Pool(object):
         self.__used_ones = []
         self.__lock.notify_all() # Let them retry
         self.__lock.release()
+
+#eof
