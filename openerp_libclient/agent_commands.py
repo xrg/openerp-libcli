@@ -141,6 +141,7 @@ class CommandsThread(subscriptions.SubscriptionThread):
             fn = getattr(self._obj, res['method'])
         except AttributeError, e:
             self._cmds_obj.push_failure(res['id'], {'code': 100, 'message': str(e), 'error': e.args[0]})
+            return True
 
         try:
             result = fn(*(res['args']), **(res['kwargs']))
