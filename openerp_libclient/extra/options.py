@@ -166,6 +166,7 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
                         help="Print only error messages")
 
     pgroup1.add_option("--log", dest="logfile", help="A file to write plain log to, or 'stderr'")
+    pgroup1.add_option("--log-format", dest="log_format", help="Default formatting for log messages")
 
     pgroup1.add_option("--password", dest="passwd", help="specify the User Password." \
                         "Please don't use this, security risk.")
@@ -250,6 +251,8 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
 
     if opts.logfile and opts.logfile != 'stderr':
         log_kwargs['filename'] = os.path.expanduser(opts.logfile)
+    if opts.log_format:
+        log_kwargs['format'] = opts.log_format
     logging.basicConfig(**log_kwargs)
 
     _logger = logging.getLogger(log_section)
