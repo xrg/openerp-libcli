@@ -24,6 +24,7 @@
 """
 
 from types import Binary
+import datetime
 import json
 import base64
 
@@ -31,7 +32,13 @@ class JsonEncoder2(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Binary):
             return { '__binary__': True, 'payload': base64.encodestring(obj.data)}
-        return json.JSONEncoder.default(self, obj)
+        elif isinstance(obj, datetime.datetime):
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
+        elif isinstance(obj, datetime.date):
+            return obj.strftime('%Y-%m-%d')
+        elif isinstance(obj, datetime.time):
+            return obj.strftime('%H:%M:%S')
+        return super(JsonEncoder2, self).default(obj)
 
 def json_hook(dct):
     if '__binary__' in dct:
