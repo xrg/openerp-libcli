@@ -3,7 +3,7 @@
 #
 # Copyright (c) 2004-2006 TINY SPRL. (http://tiny.be) All Rights Reserved.
 # Copyright (c) 2007-2010 Albert Cervera i Areny <albert@nan-tic.com>
-# Copyright (c) 2010,2012 P. Christeas <xrg@linux.gr>
+# Copyright (c) 2010,2012-2013 P. Christeas <xrg@linux.gr>
 # Copyright (c) 2010 OpenERP (http://www.openerp.com )
 #
 # WARNING: This program as such is intended to be used by professional
@@ -39,9 +39,26 @@ class Pool(object):
 
         Since v0.3 the pool holds timestamps of *free* resources, so that
         they can easily be discarded.
+
+        Usage with indexed resources
+        ----------------------------
+
+        If `filter_fn`, `setter_fn` and optionally `limit` are set, then
+        the resource pool may resemble a dictionary, where any arbitrary
+        condition on the resource can group them together.
+
+        `filter_fn` will be used to only return a specific "kind" of res.
+        upon a call to `borrow()`
+
+        `setter_fn` will be used to set that "kind" on a new resource, after
+        a call to iter_constr.next()
+
+        `limit` may help to limit the number of available resources, 
+        per "kind". However, if `limit` is used without `filter_fn()`, then
+        the limit will be a Pool-wide one.
     """
 
-    def __init__(self, iter_constr, check_fn=None):
+    def __init__(self, iter_constr, check_fn=None, filter_fn=None, setter_fn=None, limit=False):
         """ Init the pool
 
             @param iter_constr is an iterable, that can construct a new
@@ -50,6 +67,17 @@ class Pool(object):
             @param check_fn A callable to use before borrow or after free,
                 which will let discard "bad" resources. If check_fn(res)
                 returns False, res will be removed from our lists.
+            @param filter_fn If set, a callable that will be called like:
+                `filter_fn(resource,**kwargs)` , where `kwargs` are the ones
+                supplied to `borrow()` and used to select /valid/ resources
+                for that `borrow()` call. See. `Usage with indexed resources`
+            @param setter_fn Strongly advised to use together with `filter_fn`,
+                in order to initialize new resource with our index.
+                Also called like: `setter_fn(resource, **kwargs)` in borrow
+            @param limit If set, a positive integer of max resources that can
+                be allowed in "used" list, before call to `borrow()` will fail.
+                `limit` does use the `filter_fn`, if the latter is set, to
+                apply the limitation only to similar resources.
         """
         self.__free_ones = [] #: list of (resource, time) tuples
         self.__used_ones = []
@@ -57,16 +85,30 @@ class Pool(object):
         self.__iterc = iter_constr
         assert self.__iterc
         self.__check_fn = check_fn
+        self._filter_fn = filter_fn
+        self._setter_fn = setter_fn
+        self._limit = limit
 
-    def borrow(self, blocking=False):
+    def borrow(self, blocking=False, **kwargs):
         """Return the next free member of the pool
         """
         self.__lock.acquire()
         t2 = 0.0
         while(True):
             ret = None
-            if len(self.__free_ones):
-                ret, tstamp = self.__free_ones.pop()
+            idx = len(self.__free_ones)
+            while (idx > 0):
+                idx -= 1
+                if self._filter_fn:
+                    # Wrap around try block, because we want to test with the
+                    # lock acquired(), but must release on exception
+                    try:
+                        if not self._filter_fn(self.__free_ones[idx][0], **kwargs):
+                            continue
+                    except:
+                        self.__lock.release()
+                        raise
+                ret, tstamp = self.__free_ones.pop(idx)
                 if self.__check_fn is not None:
                     self.__lock.release()
                     if not self.__check_fn(ret):
@@ -80,10 +122,28 @@ class Pool(object):
                 self.__lock.release()
                 return ret
 
+            count = 0
+            # Before constructing a new one, count the limit
+            try:
+                if self._limit:
+                    for res in self.__used_ones:
+                        if self._filter_fn and not self._filter_fn(res, **kwargs):
+                            continue
+                        count += 1
+            except:
+                self.__lock.release()
+                raise
+
             # no free one, try to construct a new one
             try:
                 self.__lock.release()
+                if self._limit and (count >= self._limit):
+                    raise StopIteration()
+
                 ret = self.__iterc.next()
+                if ret is not None and self._setter_fn:
+                    self._setter_fn(ret, **kwargs)
+
                 # the iterator may temporarily return None, which
                 # means we should wait and retry the operation.
                 self.__lock.acquire()
@@ -97,6 +157,7 @@ class Pool(object):
                 # else pass
                 self.__lock.acquire()
 
+            idx = len(self.__free_ones) # reset counter, scan all of them after waiting
             if isinstance(blocking, (int, float)):
                 twait = blocking - t2
             else:
