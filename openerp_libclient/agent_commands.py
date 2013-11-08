@@ -160,7 +160,11 @@ class CommandsThread(subscriptions.SubscriptionThread):
         except Exception, e:
             self._logger.error("Exception: %s", e)
             try:
-                self._cmds_obj.push_exception(res['id'], {'code': 100, 'message': str(e), 'error': e.args[0]})
+                if e.args:
+                    error = e.args[0]
+                else:
+                    error = ''
+                self._cmds_obj.push_exception(res['id'], {'code': 100, 'message': str(e), 'error': error})
             except Exception:
                 self._logger.exception("Could not even push exception to cmd #%d!", res['id'])
         else:
