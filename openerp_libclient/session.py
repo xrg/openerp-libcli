@@ -279,7 +279,7 @@ class Session(object):
                 self.auth_proxy.uid = res
                 self.conn_url = conn.prettyUrl()
                 self._log.info("Logged in to %s", self.conn_url )
-            self.context = conn.call('/object', 'execute', ('res.users', 'context_get'), auth_level='db') or {}
+                self.context = conn.call('/object', 'execute', ('res.users', 'context_get'), auth_level='db') or {}
             return res
         except Exception:
             self.state = 'nologin'
