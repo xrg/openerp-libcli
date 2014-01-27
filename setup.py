@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 name = 'openerp_libclient'
-version = '0.0.2'
+version = '0.6'
 
 setup(
     name=name,
