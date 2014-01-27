@@ -477,6 +477,8 @@ class addAuthTransport:
         """
         assert isinstance(authobj, AuthClient)
         self._auth_client = authobj
+        self._auth_type = None
+        self._auth_realm = None
 
     def setAuthTries(self, tries):
         self._auth_tries = int(tries)
@@ -485,7 +487,6 @@ class addAuthTransport:
         # issue XML-RPC request
         max_tries = getattr(self, "_auth_tries", 3)
         tries = 0
-        atype = None
         realm = None
         h = None
 
@@ -504,10 +505,10 @@ class addAuthTransport:
                 if h: h.close()
                 continue
 
-            if atype:
+            if self._auth_type:
                 # This line will bork if self.setAuthClient has not
                 # been issued. That is a programming error, fix your code!
-                auths = self._auth_client.getAuth(atype, realm)
+                auths = self._auth_client.getAuth(self._auth_type, self._auth_realm)
                 h.putheader('Authorization', auths)
             self.send_content(h, request_body)
 
@@ -531,6 +532,8 @@ class addAuthTransport:
                     if atype != 'Basic':
                         raise ProtocolError(host+handler, 403,
                                         "Unknown authentication method: %s" % atype, resp.msg)
+                    self._auth_type = atype
+                    self._auth_realm = realm
                     continue # with the outer while loop
                 else:
                     raise ProtocolError(host+handler, 403,
