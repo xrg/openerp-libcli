@@ -165,7 +165,7 @@ class HTTPResponse2(httplib.HTTPResponse):
         self.will_close = httplib._UNKNOWN      # conn will close at end of response
 
     
-class HTTP11(httplib.HTTP):
+class HTTP11(httplib.HTTP, object):
     """ enhancement over httplib.HTTP class, for persistent connections
     
     Needed in python <= 2.6, redundant in 2.7
@@ -184,7 +184,7 @@ class HTTP11(httplib.HTTP):
         ret = super(HTTP11, self).connect()
         # FIXME: this function is not called, we must put that code 
         # somewhere else..
-        #self.sock.setsockopt(socket.SO_KEEPALIVE, True)
+        self._conn.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True)
         return ret
 
 try:
@@ -192,7 +192,7 @@ try:
             # print "No https for python %d.%d" % sys.version_info[0:2]
         raise AttributeError()
 
-    class HTTPS(httplib.HTTPS):
+    class HTTPS(httplib.HTTPS, object):
         _http_vsn = 11
         _http_vsn_str = 'HTTP/1.1'
 
@@ -207,7 +207,7 @@ try:
     
         def connect(self):
             ret = super(HTTPS, self).connect()
-            self.sock.setsockopt(socket.SO_KEEPALIVE, True)
+            self._conn.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True)
             return ret
 
 except AttributeError:
@@ -242,6 +242,7 @@ class PersistentTransport(Transport):
         if (not self._http_conn) or (self._http_host != host):
             host, extra_headers, x509 = self.get_host_info(host)
             self._http_conn = HTTP11(host)
+            self._http_conn.connect()
             self._log.info("New connection to %s", host)
             self._http_host = host
             self._common_headers_sent = {}
@@ -413,6 +414,7 @@ class SafePersistentTransport(PersistentTransport):
         if (not self._http_conn) or (self._http_host != host):
             host, extra_headers, x509 = self.get_host_info(host)
             self._http_conn = HTTPS(host, None, **(x509 or {}))
+            self._http_conn.connect()
             self._http_host = host
             self._log.info("New connection to %s", host)
         return self._http_conn
