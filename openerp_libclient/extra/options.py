@@ -264,9 +264,10 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
 
     # enforce the arguments policy
     if have_args is not None:
-        if have_args is True and not args:
-            _logger.error("Must supply at least one argument")
-            sys.exit(1)
+        if have_args is True:
+            if not args:
+                _logger.error("Must supply at least one argument")
+                sys.exit(1)
         elif have_args is False and args:
             _logger.error("No arguments are allowed to this sript")
             sys.exit(1)
