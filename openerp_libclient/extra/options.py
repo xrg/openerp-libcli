@@ -114,7 +114,7 @@ def _parse_url_dsn(url, connect_dsn):
     # path, params, fragment
 
 def init(usage=None, config=None, have_args=None, allow_askpass=True,
-        options_prepare=None, defaults=None, config_section='general'):
+        options_prepare=None, defaults=None, config_section='general', post_conf=None):
     """
 
         @param usage a string describing the usage of the script
@@ -133,6 +133,9 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
         @param config_section The config section to use from the file, *or*
             tuple with arguments to ask the section from. If empty tuple '()'
             is given, defaults to ('-s', '--config-section')
+        @param post_conf A function, to call with SafeConfigParser as an argument,
+            after all of the configuration is read. Useful to parse custom sections
+            apart from the ones included
 
         Example of options_prepare::
 
@@ -209,6 +212,7 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
         config_section = copt.config_section
 
     conf_read = False
+    cfgparser = False
     if copt.have_config:
         if copt.configfile:
             cfiles = [copt.configfile,]
@@ -293,5 +297,8 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
             _logger.debug("Password read from file")
         except Exception, e:
             _logger.warning("Password file could not be read: %s", e)
+    
+    if post_conf:
+        post_conf(opts, args, cfgparser)
 
 #eof
