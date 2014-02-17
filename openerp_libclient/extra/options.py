@@ -76,7 +76,9 @@ def _parse_option_section(conf, items, copt, opt, _allow_include=0):
         if key in _non_options:
             continue
         elif key in dir(copt):
-            if isinstance(getattr(copt, key), list) or \
+            if key in _list_options:
+                val = val.split(_list_options[key])
+            elif isinstance(getattr(copt, key), list) or \
                     (key in ('modules',)):
                 val = val.split(' ')
             elif isinstance(getattr(copt, key), bool):
