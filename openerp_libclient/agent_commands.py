@@ -75,7 +75,7 @@ class CommandsThread(subscriptions.SubscriptionThread):
         self._addr_id = None
         self._logger = logging.getLogger('command_agent')
         self._cmds_obj = None
-        
+
     def start(self):
         threading.Thread.start(self)
         self._logger.debug("Started thread for %s -> %r", self.expression, self._obj)
@@ -104,6 +104,12 @@ class CommandsThread(subscriptions.SubscriptionThread):
             self._logger.exception("Could not subscribe")
             return
 
+        try:
+            self._startup()
+        except Exception:
+            self._logger.exception("Cannot startup:")
+            self._must_stop = True
+
         while self.session.logged() and not self._must_stop:
             try:
                 if self._poll_commands():
@@ -122,6 +128,14 @@ class CommandsThread(subscriptions.SubscriptionThread):
             except Exception:
                 self._logger.exception("Error")
                 time.sleep(self.error_retry_delay)
+
+    def _startup(self):
+        """Hook for actions before the first command is polled
+
+            Called after the channel has been subscribed to, but before the
+            first (queued) command is ever executed.
+        """
+        pass
 
     def _poll_commands(self):
         """ Polls the server for requested commands and dispatches them as appropriate
