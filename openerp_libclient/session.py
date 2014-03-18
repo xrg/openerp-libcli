@@ -78,9 +78,6 @@ class Session(object):
             expirer = loopthread.LoopThread(mysess.conn_expire, mysess.loop_once)
             expirer.start()
     """
-    #LoggedIn = 0
-    #Exception = 2
-    #InvalidCredentials = 3
     session_limit = 30
     conn_timeout = 30.0 # limit of seconds to wait for a free connection
     conn_expire = 60.0 # seconds after which a connection shall close
