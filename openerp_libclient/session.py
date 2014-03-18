@@ -27,6 +27,7 @@ from interface import Connection, RPCNotifier
 import logging
 import sys
 import time
+import socket
 
 #.apidoc title: session - Connection to server
 
@@ -95,9 +96,43 @@ class Session(object):
             return None # but don't break the loop
         newconn = self.__conn_klass(self)
         assert isinstance(newconn, Connection)
-        if not newconn.establish(self.conn_args, do_init=False):
-            return None
+        try:
+            if not newconn.establish(self.conn_args, do_init=False):
+                return None
+        except socket.gaierror, e:
+            self._log.warning("Cannot establish connection: %s", e.strerror)
+            if e.errno in (socket.EAI_AGAIN, socket.EAI_NONAME) \
+                    and self.__reset_resolver():
+                if not newconn.establish(self.conn_args, do_init=False):
+                    return None
+            else:
+                raise
         return newconn
+
+    def __reset_resolver(self):
+        """ Reset resolver cache, re-read "/etc/resolv.conf"
+
+            In Linux platforms, libresolv does cache the first nameserver that
+            has given us a positive answer. If we move our client (laptop) to
+            a different network, this will break, even though "/etc/resolv.conf"
+            has been updated. The solution is to reset the library, using a
+            low-level call.
+            Code copied from sugarlabs:
+                http://bugs.sugarlabs.org/attachment/ticket/1940/network.py.patch
+        """
+        if sys.platform.startswith('linux'):
+            import ctypes
+            try:
+                libc = ctypes.CDLL('libc.so.6')
+                res_init = getattr(libc, '__res_init')
+                res_init(None)
+            except:
+                self._log.error('Error calling libc.__res_init')
+                return False
+            return True
+        else:
+            # no known way to reset on other platforms
+            return False
 
     def _check_connection(self, conn):
         return conn.check()
