@@ -192,7 +192,7 @@ class RpcJsonConnection(TCPConnection):
             if err.errno in errors.ENONET:
                 raise errors.RpcNetworkException(err.strerror, err.errno)
             self._log.error("socket error: %s" % err)
-            self._log.debug("call %s/%s(%r)", path, method, args)
+            self._log.debug("call %s/%s(%r)", '/'.join(path), method, args)
             raise errors.RpcProtocolException( err )
         except httplib.InvalidURL, err:
             raise errors.RpcNoProtocolException(err.args[0])
