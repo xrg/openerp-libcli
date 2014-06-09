@@ -355,12 +355,14 @@ class PersistentTransport(Transport):
         connection.putheader("Content-Type", self._content_type)
 
         if self._send_gzip and len(request_body) > 200:
-            buffer = StringIO()
-            output = gzip.GzipFile(mode='wb', fileobj=buffer)
+            sbuffer = StringIO()
+            output = gzip.GzipFile(mode='wb', fileobj=sbuffer)
             output.write(request_body)
             output.close()
-            buffer.seek(0)
-            request_body = buffer.getvalue()
+            del output
+            sbuffer.seek(0)
+            request_body = sbuffer.getvalue()
+            del sbuffer
             connection.putheader('Content-Encoding', 'gzip')
 
         connection.putheader("Content-Length", str(len(request_body)))
