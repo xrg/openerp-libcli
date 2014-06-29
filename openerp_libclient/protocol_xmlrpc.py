@@ -471,6 +471,7 @@ class BasicAuthClient(AuthClient):
 class addAuthTransport:
     """ Intermediate class that authentication algorithm to http transport
     """
+    _auth_type = None
 
     def setAuthClient(self, authobj):
         """ Set the authentication client object.

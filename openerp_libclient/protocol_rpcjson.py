@@ -247,6 +247,10 @@ class RpcJsonConnection(TCPConnection):
             finally:
                 self._transport.setAuthTries(3)
         else:
+            if auth_level == 'db':
+                self._transport._auth_realm = "OpenERP User"
+            elif auth_level == 'root':
+                self._transport._auth_realm = "OpenERP Admin"
             result = self._do_request(path, method, args)
         return result
 
@@ -261,6 +265,7 @@ class RpcJsonConnection(TCPConnection):
             @returns the pure result of the call, or raises RpcException
         """
         path = ['orm', self._session.auth_proxy.dbname, model]
+        self._transport._auth_realm = "OpenERP User"
         result = self._do_request(path, method, args=args, kwargs=kwargs)
 
         return result
