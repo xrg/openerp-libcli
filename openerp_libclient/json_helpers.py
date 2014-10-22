@@ -42,6 +42,8 @@ class JsonEncoder2(json.JSONEncoder):
             return obj.strftime('%Y-%m-%d')
         elif isinstance(obj, datetime.time):
             return obj.strftime('%H:%M:%S')
+        elif isinstance(obj, buffer):
+            return { '__binary__': True, 'payload': base64.encodestring(obj)}
         return super(JsonEncoder2, self).default(obj)
 
 def json_hook(dct):
