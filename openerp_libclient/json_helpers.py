@@ -29,9 +29,13 @@ import json
 import base64
 
 class JsonEncoder2(json.JSONEncoder):
+    _browse_null_type = type(None)
+
     def default(self, obj):
         if isinstance(obj, Binary):
             return { '__binary__': True, 'payload': base64.encodestring(obj.data)}
+        elif isinstance(obj, self._browse_null_type):
+            return False
         elif isinstance(obj, datetime.datetime):
             return obj.strftime('%Y-%m-%d %H:%M:%S')
         elif isinstance(obj, datetime.date):
