@@ -90,7 +90,7 @@ class CommandsThread(subscriptions.SubscriptionThread):
             except Exception:
                 self._logger.warning("Could not unsubscribe", exc_info=True)
 
-    def run(self):
+    def run(self, single_shot=False):
         try:
             addr_obj = rpc.RpcProxy('base.command.address', session=self.session)
             aid = addr_obj.search([('name','=', self._address)])
@@ -113,6 +113,8 @@ class CommandsThread(subscriptions.SubscriptionThread):
         while self.session.logged() and not self._must_stop:
             try:
                 if self._poll_commands():
+                    if single_shot:
+                        self._must_stop = True
                     continue # fast loop
             except Exception:
                 self._logger.exception("Error while polling:")
