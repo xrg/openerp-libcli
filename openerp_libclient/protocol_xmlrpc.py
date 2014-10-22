@@ -31,6 +31,7 @@ import xmlrpclib
 import errors
 from interface import TCPConnection
 import httplib
+from tools import ustr
 
 #.apidoc title: protocol_xmlrpc - XML-RPC v1 and v2 client
 
@@ -206,9 +207,15 @@ try:
             httplib.HTTPS._setup(self, conn)
     
         def connect(self):
-            ret = super(HTTPS, self).connect()
-            self._conn.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True)
-            return ret
+            try:
+                ret = super(HTTPS, self).connect()
+                self._conn.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True)
+                return ret
+            except socket.error, e:
+                if isinstance(e.strerror, str):
+                   e.strerror = ustr(e.strerror)
+                   e.args = map(ustr, e.args)
+                raise
 
 except AttributeError:
     # if not in httplib, define a class that will always fail.
