@@ -23,6 +23,8 @@
 #.apidoc title: Tools
 
 def _to_unicode(s):
+    if not isinstance(s, str):
+        return s
     try:
         return s.decode('utf-8')
     except UnicodeError:
