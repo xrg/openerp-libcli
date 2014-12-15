@@ -165,51 +165,43 @@ class HTTPResponse2(httplib.HTTPResponse):
         self.length = httplib._UNKNOWN          # number of bytes left in response
         self.will_close = httplib._UNKNOWN      # conn will close at end of response
 
-    
-class HTTP11(httplib.HTTP, object):
-    """ enhancement over httplib.HTTP class, for persistent connections
-    
-    Needed in python <= 2.6, redundant in 2.7
-    """
+
+class HTTPConnection2(httplib.HTTPConnection):
     _http_vsn = 11
     _http_vsn_str = 'HTTP/1.1'
+    response_class = HTTPResponse2
 
     def is_idle(self):
-        return self._conn and self._conn._HTTPConnection__state == httplib._CS_IDLE
-
-    def _setup(self,conn):
-        conn.response_class = HTTPResponse2
-        httplib.HTTP._setup(self, conn)
-
+        return self._HTTPConnection__state == httplib._CS_IDLE
+    
     def connect(self):
-        ret = super(HTTP11, self).connect()
-        # FIXME: this function is not called, we must put that code 
-        # somewhere else..
-        self._conn.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True)
-        return ret
+        httplib.HTTPConnection.connect(self)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True)
+
 
 try:
     if sys.version_info[0:2] < (2,6):
             # print "No https for python %d.%d" % sys.version_info[0:2]
         raise AttributeError()
 
-    class HTTPS(httplib.HTTPS, object):
+    import ssl
+    class HTTPSConnection2(httplib.HTTPSConnection):
         _http_vsn = 11
         _http_vsn_str = 'HTTP/1.1'
+        response_class = HTTPResponse2
+
+        def __init__(self, *args, **kwargs):
+            httplib.HTTPSConnection.__init__(self, *args, **kwargs)
 
         def is_idle(self):
-            return self._conn and self._conn._HTTPConnection__state == httplib._CS_IDLE
+            return self._HTTPConnection__state == httplib._CS_IDLE
             # Still, we have a problem here, because we cannot tell if the connection is
             # closed.
 
-        def _setup(self,conn):
-            conn.response_class = HTTPResponse2
-            httplib.HTTPS._setup(self, conn)
-    
         def connect(self):
             try:
-                ret = super(HTTPS, self).connect()
-                self._conn.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True)
+                ret = httplib.HTTPSConnection.connect(self)
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, True)
                 return ret
             except socket.error, e:
                 if isinstance(e.strerror, str):
@@ -219,7 +211,7 @@ try:
 
 except AttributeError:
     # if not in httplib, define a class that will always fail.
-    class HTTPS():
+    class HTTPSConnection2():
         def __init__(self,*args):
             raise NotImplementedError( "your version of httplib doesn't support HTTPS" )
 
@@ -248,7 +240,7 @@ class PersistentTransport(Transport):
         # create a HTTP connection object from a host descriptor
         if (not self._http_conn) or (self._http_host != host):
             host, extra_headers, x509 = self.get_host_info(host)
-            self._http_conn = HTTP11(host)
+            self._http_conn = HTTPConnection2(host)
             self._http_conn.connect()
             self._log.info("New connection to %s", host)
             self._http_host = host
@@ -329,7 +321,7 @@ class PersistentTransport(Transport):
 
         resp = None
         try:
-            resp = h._conn.getresponse()
+            resp = h.getresponse()
             # TODO: except BadStatusLine, e:
 
             errcode, errmsg, headers = resp.status, resp.reason, resp.msg
@@ -377,7 +369,7 @@ class PersistentTransport(Transport):
         if sys.version_info[0:2] >= (2,7):
             connection.endheaders(request_body)
         else:
-            self.__send_all_headers(connection._conn, request_body)
+            self.__send_all_headers(connection, request_body)
 
     def __send_all_headers(self, conn, message_body):
         """ the equivalent of conn.endheaders(...)
@@ -422,7 +414,7 @@ class SafePersistentTransport(PersistentTransport):
         # host may be a string, or a (host, x509-dict) tuple
         if (not self._http_conn) or (self._http_host != host):
             host, extra_headers, x509 = self.get_host_info(host)
-            self._http_conn = HTTPS(host, None, **(x509 or {}))
+            self._http_conn = HTTPSConnection2(host, None, **(x509 or {}))
             self._http_conn.connect()
             self._http_host = host
             self._log.info("New connection to %s", host)
@@ -523,7 +515,7 @@ class addAuthTransport:
             self.send_content(h, request_body)
 
             try:
-                resp = h._conn.getresponse()
+                resp = h.getresponse()
             except httplib.BadStatusLine, e:
                 if e.line and e.line != "''": # BadStatusLine does a repr(line)
                     # something else, not a broken connection
@@ -555,11 +547,6 @@ class addAuthTransport:
                     resp.status, resp.reason, resp.msg )
 
             self.verbose = verbose
-
-            #try:
-            #    sock = h._conn.sock
-            #except AttributeError:
-            #    sock = None
 
             return self._parse_response(resp)
 
