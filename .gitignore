@@ -2,3 +2,5 @@
 *~
 .directory
 /dist
+*.pyc
+*.pyo
