@@ -267,6 +267,9 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
     else:
         if copt.configfile:
             _logger.warning("Configuration could not be read from %s", copt.configfile)
+        elif copt.config_section and copt.config_section != 'general':
+            _logger.error("Config section \"%s\" missing. Aborting", copt.config_section)
+            sys.exit(3)
 
     # enforce the arguments policy
     if have_args is not None:
