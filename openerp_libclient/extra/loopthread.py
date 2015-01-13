@@ -96,4 +96,11 @@ class LoopThread(threading.Thread):
         self.__cond.notify_all()
         self.__cond.release()
 
+    def set_period(self, period):
+        """ Update period
+
+            Lock-less
+        """
+        self.__period = period
+
 #eof
