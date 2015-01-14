@@ -1,10 +1,10 @@
 # -*- encoding: utf-8 -*-
 ##############################################################################
 #
-#    Copyright (c) 2004-2009 TINY SPRL. (http://tiny.be) All Rights Reserved.
+#    Copyright (c) 2004-2009 TINY SPRL. (http://tiny.be)
+#    Copyright (c) 2010-2011 OpenERP (http://www.openerp.com)
 #    Copyright (c) 2007-2010 Albert Cervera i Areny <albert@nan-tic.com>
-#    Copyright (c) 2010 P. Christeas <p_christ@hol.gr>
-#    Copyright (c) 2010-2011 OpenERP (http://www.openerp.com )
+#    Copyright (c) 2010-2015 P. Christeas <xrg@hellug.gr>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Lesser General Public License as
@@ -422,13 +422,26 @@ class SafePersistentTransport(PersistentTransport):
 
 
 class AuthClient(object):
-    def getAuth(self, atype, realm):
-        raise NotImplementedError("Cannot authenticate for %s" % atype)
+    def putRequest(self, atype, realm, conn, host, handler):
+        """Send authorization header at `conn` as appropriate.
+        
+            @param conn a HTTPConnection instance
+        """
+        pass # may be called in a chained way, root class does nothing
 
     def resolveFailedRealm(self, realm):
         """ Called when, using a known auth type, the realm is not in cache
         """
         raise NotImplementedError("Cannot authenticate for realm %s" % realm)
+
+    def parseResponse(self, response, trans, url):
+        """Extract authentication challenge (or data) from HTTP response
+            
+            @param response HTTPResponse instance
+            @param trans AuthTransport instance
+            @param url  only passed to ProtocolError
+        """
+        pass # nothing to do
 
 import base64
 class BasicAuthClient(AuthClient):
@@ -436,15 +449,30 @@ class BasicAuthClient(AuthClient):
         self._realm_dict = {}
         self._log = logging.getLogger('RPC.BasicAuthClient')
 
-    def getAuth(self, atype, realm):
+    def putRequest(self, atype, realm, conn, host, handler):
         if atype != 'Basic' :
-            return super(BasicAuthClient,self).getAuth(atype, realm)
+            return super(BasicAuthClient,self).putRequest(atype, realm, conn, host, handler)
 
         if not self._realm_dict.has_key(realm):
             self._log.debug("realm dict: %r", self._realm_dict)
             self._log.debug("missing key: \"%s\"" % realm)
             self.resolveFailedRealm(realm)
-        return 'Basic '+ self._realm_dict[realm]
+        conn.putheader('Authorization', 'Basic '+ self._realm_dict[realm])
+
+    def parseResponse(self, resp, trans, url):
+        if 'www-authenticate' in resp.msg:
+            (atype,realm) = resp.msg.getheader('www-authenticate').split(' ',1)
+            resp.read()
+            if realm.startswith('realm="') and realm.endswith('"'):
+                realm = realm[7:-1]
+
+            if atype != 'Basic':
+                raise ProtocolError(url, 403,
+                                "Unknown authentication method: %s" % atype, resp.msg)
+            trans._auth_type = atype
+            trans._auth_realm = realm
+            return True
+        return False
 
     def addLogin(self, realm, username, passwd):
         """ Add some known username/password for a specific login.
@@ -471,15 +499,16 @@ class addAuthTransport:
     """ Intermediate class that authentication algorithm to http transport
     """
     _auth_type = None
+    _auth_client = None
 
-    def setAuthClient(self, authobj):
+    def setAuthClient(self, authobj, auth_type=None):
         """ Set the authentication client object.
             This method must be called before any request is issued, that
             would require http authentication
         """
         assert isinstance(authobj, AuthClient)
         self._auth_client = authobj
-        self._auth_type = None
+        self._auth_type = auth_type
         self._auth_realm = None
 
     def setAuthTries(self, tries):
@@ -489,7 +518,6 @@ class addAuthTransport:
         # issue XML-RPC request
         max_tries = getattr(self, "_auth_tries", 3)
         tries = 0
-        realm = None
         h = None
 
         while(tries < max_tries):
@@ -507,11 +535,8 @@ class addAuthTransport:
                 if h: h.close()
                 continue
 
-            if self._auth_type:
-                # This line will bork if self.setAuthClient has not
-                # been issued. That is a programming error, fix your code!
-                auths = self._auth_client.getAuth(self._auth_type, self._auth_realm)
-                h.putheader('Authorization', auths)
+            if self._auth_client:
+                self._auth_client.putRequest(self._auth_type, self._auth_realm, h, host, handler)
             self.send_content(h, request_body)
 
             try:
@@ -523,22 +548,13 @@ class addAuthTransport:
                 if h: h.close()
                 continue
 
+            if self._auth_client:
+                aresp = self._auth_client.parseResponse(resp, self, host+handler)
+                if resp.status == 401 and aresp:
+                    continue
+
             if resp.status == 401:
-                if 'www-authenticate' in resp.msg:
-                    (atype,realm) = resp.msg.getheader('www-authenticate').split(' ',1)
-                    resp.read()
-                    if realm.startswith('realm="') and realm.endswith('"'):
-                        realm = realm[7:-1]
-                    # print "Resp:", resp.version,resp.isclosed(), resp.will_close
-                    #print "Want to do auth %s for realm %s" % (atype, realm)
-                    if atype != 'Basic':
-                        raise ProtocolError(host+handler, 403,
-                                        "Unknown authentication method: %s" % atype, resp.msg)
-                    self._auth_type = atype
-                    self._auth_realm = realm
-                    continue # with the outer while loop
-                else:
-                    raise ProtocolError(host+handler, 403,
+                raise ProtocolError(host+handler, 403,
                                 'Server-incomplete authentication', resp.msg)
 
             if resp.status != 200:
@@ -547,7 +563,6 @@ class addAuthTransport:
                     resp.status, resp.reason, resp.msg )
 
             self.verbose = verbose
-
             return self._parse_response(resp)
 
         raise ProtocolError(host+handler, 403, "No authentication",'')
