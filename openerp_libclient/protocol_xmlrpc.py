@@ -521,49 +521,54 @@ class addAuthTransport:
         h = None
 
         while(tries < max_tries):
-            if not h:
-                h = self.make_connection(host)
-                if verbose:
-                    h.set_debuglevel(1)
-
-            tries += 1
             try:
-                self.send_request(h, handler, request_body)
-                self.send_host(h, host)
-                self.send_user_agent(h)
-            except httplib.CannotSendRequest:
-                if h: h.close()
-                continue
+                resp = None
+                if not h:
+                    h = self.make_connection(host)
+                    if verbose:
+                        h.set_debuglevel(1)
 
-            if self._auth_client:
-                self._auth_client.putRequest(self._auth_type, self._auth_realm, h, host, handler)
-            self.send_content(h, request_body)
-
-            try:
-                resp = h.getresponse()
-            except httplib.BadStatusLine, e:
-                if e.line and e.line != "''": # BadStatusLine does a repr(line)
-                    # something else, not a broken connection
-                    raise
-                if h: h.close()
-                continue
-
-            if self._auth_client:
-                aresp = self._auth_client.parseResponse(resp, self, host+handler)
-                if resp.status == 401 and aresp:
+                tries += 1
+                try:
+                    self.send_request(h, handler, request_body)
+                    self.send_host(h, host)
+                    self.send_user_agent(h)
+                except httplib.CannotSendRequest:
+                    if h: h.close()
                     continue
 
-            if resp.status == 401:
-                raise ProtocolError(host+handler, 403,
-                                'Server-incomplete authentication', resp.msg)
+                if self._auth_client:
+                    self._auth_client.putRequest(self._auth_type, self._auth_realm, h, host, handler)
+                self.send_content(h, request_body)
 
-            if resp.status != 200:
-                resp.read()
-                raise ProtocolError( host + handler,
-                    resp.status, resp.reason, resp.msg )
+                try:
+                    resp = h.getresponse()
+                except httplib.BadStatusLine, e:
+                    if e.line and e.line != "''": # BadStatusLine does a repr(line)
+                        # something else, not a broken connection
+                        raise
+                    if h: h.close()
+                    if resp: resp.close()
+                    continue
 
-            self.verbose = verbose
-            return self._parse_response(resp)
+                if self._auth_client:
+                    aresp = self._auth_client.parseResponse(resp, self, host+handler)
+                    if resp.status == 401 and aresp:
+                        continue
+
+                if resp.status == 401:
+                    raise ProtocolError(host+handler, 403,
+                                    'Server-incomplete authentication', resp.msg)
+
+                if resp.status != 200:
+                    resp.read()
+                    raise ProtocolError( host + handler,
+                        resp.status, resp.reason, resp.msg )
+
+                self.verbose = verbose
+                return self._parse_response(resp)
+            finally:
+                if resp: resp.close()
 
         raise ProtocolError(host+handler, 403, "No authentication",'')
 
