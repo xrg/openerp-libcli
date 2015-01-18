@@ -64,6 +64,7 @@ class JSON_add_transport:
             We are persistent, so it is important to only parse
             the right amount of input
         """
+        self._check_return_type(response)
 
         respdata = StringIO()
         while not response.isclosed():

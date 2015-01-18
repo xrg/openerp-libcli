@@ -264,6 +264,7 @@ class PersistentTransport(Transport):
         """
 
         p, u = self.getparser()
+        self._check_return_type(response)
 
         if response.msg.get('content-encoding') == 'gzip':
             gzdata = StringIO()
@@ -298,6 +299,10 @@ class PersistentTransport(Transport):
 
         p.close()
         return u.close()
+
+    def _check_return_type(self, resp):
+        if resp.msg.get('content-type', False).split(';')[0] != self._content_type:
+            self._log.warning("Response contains wrong content-type: %s", resp.msg.get('content-type','<empty>'))
 
     def request(self, host, handler, request_body, verbose=0):
         # issue XML-RPC request

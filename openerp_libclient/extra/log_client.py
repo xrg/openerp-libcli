@@ -120,6 +120,10 @@ class _logTransportMixin(object):
         self.hostport = '%s:%s' % (host, port)
         self.sock_errors = 0
 
+    def _check_return_type(self, resp):
+        if resp.msg.get('content-type', False).split(';')[0] != 'text/x-log':
+            self._log.warning("Response contains wrong content-type: %s", resp.msg.get('content-type','<empty>'))
+
     def getparser(self):
         p = u = MachineLogParser(self.log_handler)
         return p, u
