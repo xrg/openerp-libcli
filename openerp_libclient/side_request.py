@@ -113,9 +113,13 @@ class SideChannel(object):
             raise NotImplementedError("Content-Encoding: %s" % response.msg.get('content-encoding'))
         else:
             rbuffer = response
-        content_type = response.msg.get('content-type')
+        content_type = response.msg.get('content-type').split(';',1)[0]
         if content_type == 'application/json':
             return json.load(rbuffer, object_hook=json_helpers.json_hook)
+        elif content_type == 'text/plain':
+            if ';' in response.msg.get('content-type'):
+                raise NotImplementedError # encoding
+            return str(rbuffer.read()).decode('utf-8')
         else:
             #while not response.isclosed():
             #    rdata = response.read(1024)
