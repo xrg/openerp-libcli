@@ -9,6 +9,7 @@
 import logging
 import json
 import httplib
+import urllib
 import gzip
 from xmlrpclib import ProtocolError
 from openerp_libclient import json_helpers
@@ -42,7 +43,7 @@ class SideChannel(object):
         self._base_path = base_path % session.conn_args
 
 
-    def _request(self, trans, method, path, request_body):
+    def _request(self, trans, method, path, uparams, request_body):
         """
             @param trans a TCPTransport object
         """
@@ -59,7 +60,7 @@ class SideChannel(object):
 
             tries += 1
             try:
-                h.putrequest(method, path, skip_accept_encoding=1)
+                h.putrequest(method, path+uparams, skip_accept_encoding=1)
                 trans.send_host(h, host)
                 trans.send_user_agent(h)
             except httplib.CannotSendRequest:
@@ -144,9 +145,14 @@ class SideChannel(object):
         self._logger.debug("request for %s", path)
         body = None
         content_type = 'text/plain'
+        uparams = ''
         if params:
-            # TODO
-            raise NotImplementedError
+            assert isinstance(params, dict), type(params)
+            params = params.copy()
+            for k, v in params.items():
+                if isinstance(v, unicode):
+                    params[k] = v.encode('utf-8')
+            uparams = '?'+urllib.urlencode(params)
 
         path = self._base_path + path
 
@@ -166,7 +172,7 @@ class SideChannel(object):
             # override the transport , restore later
             saved_content_type = conn._transport._content_type
             conn._transport._content_type = content_type
-            resp = self._request(conn._transport, method, path, body)
+            resp = self._request(conn._transport, method, path, uparams, body)
 
             if callback:
                 return callback(resp)
