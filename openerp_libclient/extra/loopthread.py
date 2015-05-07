@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 ##############################################################################
 #
-#    Copyright 2011 P. Christeas
+#    Copyright 2011-2015 P. Christeas
 #    Author (blame me): P. Christeas <xrg@hellug.gr>
 #
 #    This program is free software: you can redistribute it and/or modify
