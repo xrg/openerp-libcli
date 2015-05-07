@@ -23,6 +23,8 @@
 
 import errno
 
+from tools import ustr
+
 #.apidoc title: errors - Common Exceptions for RPC layer
 ENONET = (errno.ECONNREFUSED, errno.ECONNRESET, errno.ECONNABORTED, errno.ENOENT)
 class RpcException(Exception):
@@ -40,10 +42,7 @@ class RpcProtocolException(RpcException):
     def __init__(self, backtrace):
         self.code = None
         self.args = (backtrace,)
-        if isinstance(backtrace, unicode):
-            self.info = backtrace
-        else:
-            self.info = unicode( str(backtrace), 'utf-8' )
+        self.info = ustr(backtrace)
         self.backtrace = backtrace
 
 class RpcNoProtocolException(RpcProtocolException):
