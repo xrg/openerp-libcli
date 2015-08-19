@@ -41,6 +41,7 @@ from ConfigParser import SafeConfigParser, NoSectionError
 import optparse
 import sys, os
 import logging
+import logging.handlers
 import re
 
 opts = args = None
@@ -170,7 +171,7 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
     pgroup1.add_option("--quiet", dest="quiet", action='store_true', default=False,
                         help="Print only error messages")
 
-    pgroup1.add_option("--log", dest="logfile", help="A file to write plain log to, or 'stderr'")
+    pgroup1.add_option("--log", dest="logfile", help="A file to write plain log to, 'stderr' or 'syslog'")
     pgroup1.add_option("--log-format", dest="log_format", help="Default formatting for log messages")
 
     pgroup1.add_option("--password", dest="passwd", help="specify the User Password." \
@@ -255,11 +256,24 @@ def init(usage=None, config=None, have_args=None, allow_askpass=True,
     elif opts.quiet:
         log_kwargs['level'] = logging.WARN
 
-    if opts.logfile and opts.logfile != 'stderr':
-        log_kwargs['filename'] = os.path.expanduser(opts.logfile)
-    if opts.log_format:
-        log_kwargs['format'] = opts.log_format
-    logging.basicConfig(**log_kwargs)
+    has_systemd = bool(os.environ.get('NOTIFY_SOCKET', None))
+    if opts.logfile == 'syslog' or (has_systemd and not opts.logfile):
+        hdlr = logging.handlers.SysLogHandler('/dev/log')
+        if opts.log_format:
+            log_format = opts.log_format
+        elif has_systemd:
+            log_format = '%(name)s:%(message)s'
+        else:
+            log_format = logging.BASIC_FORMAT
+        root_logger = logging.getLogger()
+        hdlr.setFormatter(logging.Formatter(log_format))
+        root_logger.addHandler(hdlr)
+    else:
+        if opts.logfile and opts.logfile != 'stderr':
+            log_kwargs['filename'] = os.path.expanduser(opts.logfile)
+        if opts.log_format:
+            log_kwargs['format'] = opts.log_format
+        logging.basicConfig(**log_kwargs)
 
     _logger = logging.getLogger(log_section)
     if conf_read:
