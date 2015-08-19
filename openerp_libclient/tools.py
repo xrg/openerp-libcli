@@ -22,19 +22,28 @@
 
 #.apidoc title: Tools
 
-def _to_unicode(s):
+def _to_unicode(s, lossy=False):
     if not isinstance(s, str):
         return s
     try:
         return s.decode('utf-8')
     except UnicodeError:
-        try:
-            return s.decode('latin')
-        except UnicodeError:
-            try:
-                return s.encode('ascii')
-            except UnicodeError:
-                return s
+        pass
+
+    try:
+        return s.decode('latin')
+    except UnicodeError:
+        pass
+
+    try:
+        return s.encode('ascii')
+    except UnicodeError:
+        if not lossy:
+            raise
+        else:
+            pass
+
+    return s.decode('utf-8', errors='ignore')
 
 def _to_decode(s):
     try:
