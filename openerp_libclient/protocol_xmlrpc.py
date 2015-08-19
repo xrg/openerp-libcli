@@ -191,6 +191,8 @@ try:
         response_class = HTTPResponse2
 
         def __init__(self, *args, **kwargs):
+            if sys.version_info[0:3] >= (2,7,9) and kwargs.get('context', None) is None:
+                kwargs['context'] = ssl._create_unverified_context()
             httplib.HTTPSConnection.__init__(self, *args, **kwargs)
 
         def is_idle(self):
